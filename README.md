@@ -51,53 +51,51 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 
 ## 界面预览
 
-启动页（`snacks.nvim` dashboard，艺术字是 `lua/plugins/ui-dashboard.lua` 里的 header）：
+截图在 **Neovide**（Neovim GUI）下拍摄，终端/窗口背景是透明的，透出桌面壁纸。
 
-```text
-                    ██████╗██████╗  ██████╗ ██╗    ██╗
-                   ██╔════╝██╔══██╗██╔═══██╗██║    ██║
-                   ██║     ██████╔╝██║   ██║██║ █╗ ██║
-                   ██║     ██╔══██╗██║   ██║██║███╗██║
-                   ╚██████╗██║  ██║╚██████╔╝╚███╔███╔╝
-                     ╚═════╝╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝
-                    ███╗   ██╗██╗   ██╗██╗███╗   ███╗
-                    ████╗  ██║██║   ██║██║████╗ ████║
-                    ██╔██╗ ██║██║   ██║██║██╔████╔██║
-                    ██║╚██╗██║╚██╗ ██╔╝██║██║╚██╔╝██║
-                    ██║ ╚████║ ╚████╔╝ ██║██║ ╚═╝ ██║
-                    ╚═╝  ╚═══╝  ╚═══╝  ╚═╝╚═╝     ╚═╝
+### 启动页
 
-              AI qwen2.5-coder:3b 在线 · <leader>oa 解释代码
+<img src="docs/images/dashboard.jpg" width="900" alt="CrowNvim 启动页：CrowNvim 艺术字、本机模型状态、快捷键列表、启动耗时">
 
-                   Find File                    f
-                   New File                     n
-                   Projects                     p
-                   Find Text                    g
-                   Recent Files                 r
-                   Config                       c
-                   Restore Session              s
-                   Lazy Extras                  x
-                   Lazy                         l
-                   Quit                         q
+- **艺术字**：`CrowNvim` 两行式大字，定义在 `lua/plugins/ui-dashboard.lua` 的 `header`，宽度压到 35 列以内，窄终端也不折行；
+- **AI 状态行**：`AI qwen2.5-coder:3b 在线 · <leader>oa 解释代码`——启动时就读一次 Ollama 的 `/api/tags`，没在跑会提示离线，不会卡住启动；
+- **快捷键列表**：`f` 找文件、`n` 新建、`p` 项目、`g` 全文搜索、`r` 最近文件、`c` 配置、`s` 恢复会话、`x` Lazy Extras、`l` Lazy、`q` 退出；
+- **启动耗时**：右下角 `Neovim loaded N/M plugins in xx ms`，方便随时观察有没有插件拖慢启动。
 
-                ⚡ Neovim loaded 15/66 plugins in 72.64ms
-```
+### 插件管理（`:Lazy`）
 
-状态栏是 lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用
-`\u{E0B6}` / `\u{E0B4}` 画半圆（需要终端字体含这两个 Nerd Font 字形）。
+<img src="docs/images/lazy.jpg" width="900" alt="lazy.nvim 插件列表：每个插件的加载耗时与触发事件">
 
-从左到右的分段：
+每个插件后面标的是**加载耗时**和**触发时机**：
+
+- `VeryLazy`：进入界面之后才加载（补全、状态栏、which-key 这类）；
+- `start`：启动阶段就加载；
+- 后面跟着命令或键位名的（如 `CodeCompanion`、`<leader>cf`）：由该命令/键位首次触发时才加载；
+- 上半部分是已加载（Loaded），下半部分是尚未加载（Not Loaded）——想优化启动，看 Loaded 里谁最慢即可。
+
+> 上图中启动阶段的已加载插件约 26 个，其余按需加载，这也是冷启动能维持在几十毫秒的原因。
+
+> `lazy.nvim` 统计里包含它自己，所以 `:Lazy` 显示的总数比状态栏的
+> `loaded/total` 多 1。
+
+### 状态栏
+
+lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{E0B6}` / `\u{E0B4}`
+画半圆（需要终端字体含这两个 Nerd Font 字形）。
+
+从截图底部可以看到完整形态：`NORMAL` → 文件名 → 右侧的 `snacks_dashboard`
+与 `54% 24:79`。各段含义：
 
 | 段 | 内容 | 说明 |
 |---|---|---|
-| a | 左圆头 | 只是个半圆装饰，把整条状态栏"包"起来 |
+| a | 左圆头 | 半圆装饰，把整条状态栏"包"起来 |
 | b | 模式 | `NORMAL` / `INSERT` / `VISUAL`，按模式变色 |
 | c | 文件名 · 分支 · 改动行数 | 文件名带路径；`●` 表示已修改；`diff` 显示增删行数 |
 | x | AI 状态 · LSP 客户端 · 诊断 | 有 AI 建议时亮起；LSP 显示已连接服务名（如 `pyright`）；诊断用 `● ▲ ○` 区分级别 |
-| y | 编码 · 文件格式 · 文件类型 · 进度 | `utf-8` / `unix` / `lua` / `42%`（窄窗口自动隐藏部分段） |
-| z | 行:列 + 右圆头 | `42:1`，末尾是右半圆 |
+| y | 编码 · 文件格式 · 文件类型 · 进度 | `utf-8` / `unix` / `lua` / `54%`（窄窗口自动隐藏部分段） |
+| z | 行:列 + 右圆头 | `24:79`，末尾是右半圆 |
 
-> 各段的实现见 `lua/plugins/lualine.lua`，界面文案是中文。
+> 各段实现见 `lua/plugins/lualine.lua`，界面文案是中文。
 
 ---
 
