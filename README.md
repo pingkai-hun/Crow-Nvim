@@ -1,6 +1,6 @@
 # CrowNvim
 
-> **版本：Beta0.1.2**
+> **版本：v1.0.0**
 > 基于 [LazyVim](https://github.com/LazyVim/LazyVim) 的个人 Neovim 配置。
 > 目标：把 Vim 时代顺手的工作流完整搬到 Neovim，同时保持启动快、行为可预测、出问题能自己查。
 
@@ -45,7 +45,14 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 - 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以走本机 Ollama 翻译；
 - 所有「为什么这么配」都写在对应 Lua 文件的头部注释里，方便日后自己改。
 
-当前版本为 **Beta0.1.2**，配置仍在持续迭代，接口和键位可能小幅调整。
+当前版本为 **v1.0.0**。从 v1.0.0 起遵循语义化版本：
+
+- **v1.x 内保证向后兼容** —— 已发布的命令（`:CrowExplain` / `:CrowReview` / `:CrowAsk` 等）、`<leader>` 键位映射、
+  `scripts/features.sh` 的子命令与开关名、`scripts/features_user.lua` 的格式，都不会在不作说明的情况下删除或改名；
+- 新增功能只做**加法**：新命令、新键位、新开关，已有内容的含义保持不变；
+- 需要不兼容变更时升 **v2.0.0**，并在 changelog 中写明迁移方法。
+
+已知例外：键位若与上游 LazyVim / 插件新增的默认映射冲突，可能被迫调整，这类变更会在提交说明里单独标注「BREAKING」。
 
 ---
 
@@ -291,7 +298,7 @@ ollama pull qwen2.5-coder:1.5b
 ```text
 ~/.config/nvim
 ├── init.lua                 # 入口：按顺序加载 options / neovide / crow / keymaps / autocmds / lazy
-├── VERSION                  # 当前版本（Beta0.1.2）
+├── VERSION                  # 当前版本（v1.0.0）
 ├── KEYMAPS.md               # 完整快捷键说明
 ├── lazy-lock.json           # 插件版本锁（提交到仓库，保证可复现）
 ├── lazyvim.json             # LazyVim extras 记录

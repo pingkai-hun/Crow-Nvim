@@ -1,6 +1,6 @@
 # 架构与加载顺序
 
-> 适用版本：**CrowNvim Beta0.1.2**
+> 适用版本：**CrowNvim v1.0.0**
 > 本文解释「为什么配置这样组织」以及「一个设置最终由谁生效」。改配置前建议先读一遍。
 
 ---
@@ -110,7 +110,7 @@
 `init.lua` 的实际内容（省略注释）：
 
 ```lua
-vim.g.crow_version = "Beta0.1.2"
+vim.g.crow_version = "v1.0.0"
 
 require("config.options")   -- 1
 require("config.neovide")   -- 2

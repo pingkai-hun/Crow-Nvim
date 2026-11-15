@@ -1,6 +1,6 @@
 # AI 配置
 
-> 适用版本：**CrowNvim Beta0.1.2**
+> 适用版本：**CrowNvim v1.0.0**
 > 本配置的 AI 能力分为两类：**本机 Ollama（完全离线）** 和 **GitHub Copilot（可选，联网）**。
 
 ---
