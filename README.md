@@ -386,6 +386,7 @@ require("config.lazy")      -- 7. 最后启动 lazy.nvim
 | `:CrowAiStop` | 中断 AI 请求 |
 | `:CodeCompanionChat` | 打开 CodeCompanion 对话 |
 | `:Copilot auth` | 登录 GitHub Copilot |
+| `scripts/features.sh` | 交互开关本机 AI 功能（补全 / 对话 / 翻译 …） |
 
 ---
 

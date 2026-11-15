@@ -13,6 +13,7 @@
 - [4. 对话与改写：CodeCompanion](#4-对话与改写codecompanion)
 - [5. 解释 / 审查 / 提问：crow.ai](#5-解释--审查--提问crowai)
 - [6. 文档翻译：crow.translate](#6-文档翻译crowtranslate)
+  - [功能开关：scripts/features.sh](#功能开关scriptsscriptssh)
 - [7. GitHub Copilot（可选）](#7-github-copilot可选)
 - [8. 模型选择与性能](#8-模型选择与性能)
 - [9. 隐私说明](#9-隐私说明)
@@ -279,8 +280,42 @@ vim.g.crow_translate_model = "qwen2.5-coder:1.5b"  -- 更快，但质量略低
 
 ### 关闭翻译
 
-- 悬浮文档：删除或禁用 `lua/plugins/hover-translate.lua`；
-- 补全文档：修改 `lua/plugins/blink.lua` 中调用 `crow.translate` 的部分。
+不需要改文件，直接用开关脚本：
+
+```bash
+scripts/features.sh off translate
+```
+
+---
+
+### 功能开关：scripts/features.sh
+
+本机 AI 的各项能力都可以单独开关，关闭后不需要重启终端也不用改插件文件：
+
+```bash
+scripts/features.sh           # 交互菜单（数字切换，a 全开，z 全关，r 恢复默认，q 退出）
+scripts/features.sh status    # 查看当前状态
+scripts/features.sh list      # 列出所有开关
+scripts/features.sh on  minuet codecompanion
+scripts/features.sh off crow-ai
+scripts/features.sh toggle translate
+scripts/features.sh all-off
+scripts/features.sh reset     # 恢复出厂默认
+```
+
+| 开关 | 出厂默认 | 关掉之后 |
+|---|---|---|
+| `minuet` | 开 | 不再出幽灵补全，`<Tab>` 退回 snippet / 缩进行为 |
+| `codecompanion` | 开 | `:CodeCompanion*` 命令与 `oc / ov / oe / oR` 不再注册 |
+| `crow_ai` | 开 | `:CrowExplain` 等命令与 `oa / or / oq / oi` 不再注册 |
+| `translate` | 开 | 文档照常显示原文，只是不翻译（Noice / blink 本体不受影响） |
+| `copilot_chat` | 开 | `CopilotChat.nvim` 整个不加载（行内补全仍由 `copilot.lua` 管理） |
+
+开关写入 `lua/crow/features_user.lua`，该文件已加入 `.gitignore`，只影响本机；
+它只记录「与出厂默认不同」的项，以后调整出厂默认值时没手改过的项会自动跟上。
+
+> 改动需要**重启 Neovim** 才生效（插件 spec 只在启动时解析一次）。
+> 脚本也可以直接手改 `features_user.lua`，格式为 `return { minuet = false }`。
 
 ---
 
