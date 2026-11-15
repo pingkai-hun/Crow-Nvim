@@ -16,6 +16,16 @@
 --   ollama pull qwen2.5-coder:1.5b
 --
 -- Docs: https://github.com/milanglacier/minuet-ai.nvim
+--
+-- 功能开关：scripts/features.sh off minuet
+-- 关掉后 blink.lua 的 <Tab> 接受建议会因为 pcall 探测不到 minuet 而自动
+-- 退回 snippet / 缩进行为，不需要额外处理。
+
+if not require("crow.features").on("minuet") then
+  return {
+    { "milanglacier/minuet-ai.nvim", enabled = false },
+  }
+end
 
 return {
   {

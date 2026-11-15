@@ -230,6 +230,29 @@ function M.setup()
     require("crow.doctor").run()
   end, { desc = "Easy-Nvim 体检" })
 
+  -- ─── <leader>o 分组名 ─────────────────────────────────────
+  -- crow.ai 里那份注册跑在 lazy.nvim 把插件目录加进 runtimepath 之前，
+  -- require("which-key") 必然失败（被它自己的 pcall 吞掉），所以这里补一次：
+  -- 先试着注册，失败就每 100ms 重试，等 which-key 可用。
+  --
+  -- 只要有任意一个 <leader>o* 功能开着才声明分组，
+  -- 否则会出现一个只装着 <leader>os（会话自动保存）的空 AI 分组。
+  if require("crow.features").any({ "crow_ai", "codecompanion" }) then
+    local function add_group(attempt)
+      local ok = pcall(function()
+        require("which-key").add({
+          { "<leader>o", group = "Ollama / AI（本机模型）", mode = "n" },
+        })
+      end)
+      if not ok and attempt < 30 then
+        vim.defer_fn(function()
+          add_group(attempt + 1)
+        end, 100)
+      end
+    end
+    add_group(0)
+  end
+
   -- 兼容 Vim 版的补全函数名（可选）
   _G.crow = M
 end

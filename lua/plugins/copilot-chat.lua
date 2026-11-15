@@ -5,6 +5,15 @@
 -- Integrates GitHub Copilot Chat into Neovim as a floating or split window.
 -- Allows asking questions, refactoring code, and running prompt actions
 -- directly from the editor using the active buffer as context.
+--
+-- 功能开关：scripts/features.sh off copilot_chat
+
+if not require("crow.features").on("copilot_chat") then
+  return {
+    "CopilotC-Nvim/CopilotChat.nvim",
+    enabled = false,
+  }
+end
 
 return {
   "CopilotC-Nvim/CopilotChat.nvim",

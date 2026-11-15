@@ -169,6 +169,12 @@ end
 
 -- 自定义文档绘制：先显示原文，流式翻译时逐段替换
 local function draw_documentation(opts)
+  -- 功能开关：scripts/features.sh off translate 时不接管文档绘制，
+  -- 直接用 blink 自带的实现（原文照常显示，只是不翻译）。
+  if not require("crow.features").on("translate") then
+    return opts.default_implementation()
+  end
+
   local item = opts.item
   local original = doc_text(item.documentation)
 

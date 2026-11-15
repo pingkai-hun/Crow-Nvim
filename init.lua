@@ -25,7 +25,12 @@ require("config.neovide")
 
 -- ─── Easy-Nvim 公共层（自定义命令 / 主题增强 / 本机 AI）──────
 require("crow").setup()
-require("crow.ai").setup()
+
+-- crow.ai 由功能开关控制（scripts/features.sh），关掉后
+-- :CrowExplain / :CrowReview / :CrowAsk 与 <leader>oa/or/oq/oi 都不注册。
+if require("crow.features").on("crow_ai") then
+  require("crow.ai").setup()
+end
 
 -- ─── 快捷键 ─────────────────────────────────────────────────
 require("config.keymaps")

@@ -10,6 +10,14 @@
 --   · 每收到一段译文就原地刷新 noice 的 hover 消息
 --
 -- 有缓存时直接弹中文，避免英文一闪而过。
+--
+-- 功能开关：scripts/features.sh off translate
+-- 注意这里返回的是「空 spec」而不是 enabled = false —— 本文件挂的是
+-- noice.nvim，noice 是 UI 插件，不能因为关掉翻译就整个禁用。
+
+if not require("crow.features").on("translate") then
+  return {}
+end
 
 local T = require("crow.translate")
 
