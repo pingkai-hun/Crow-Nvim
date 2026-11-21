@@ -114,7 +114,7 @@ return {
         { "<leader>gh", group = "Hunks", icon = "", mode = "n" }, -- Git hunk staging
         { "<leader>l", group = "LSP", icon = "", mode = "n" }, -- LSP actions and info
         { "<leader>n", group = "Notify", icon = "", mode = "n" }, -- Notification management
-        { "<leader>o", group = "Ollama / AI", icon = "", mode = "n" }, -- 本机 3B 模型
+        { "<leader>o", group = "AI", icon = "", mode = "n" }, -- 云端 / 本机 AI
         { "<leader>p", group = "Files", icon = "", mode = "n" }, -- Easy-Vim 风格文件查找
         { "<leader>q", group = "Quit", icon = "", mode = "n" }, -- Quit / session commands
         { "<leader>s", group = "Search", icon = "", mode = "n" }, -- Search and grep commands

@@ -15,7 +15,7 @@
 - [6. 获取配置](#6-获取配置)
 - [7. 首次启动](#7-首次启动)
 - [8. 安装后检查](#8-安装后检查)
-- [9. 可选：本机 AI](#9-可选本机-ai)
+- [9. 可选：AI](#9-可选ai)
 - [10. 可选：GitHub Copilot](#10-可选github-copilot)
 - [11. 卸载](#11-卸载)
 - [12. 更新](#12-更新)
@@ -281,7 +281,7 @@ nvim
 2. `config/lazy.lua` 检测并自动安装 `lazy.nvim`；
 3. 按 `lazy-lock.json` 安装全部插件；
 4. 打开文件时按需安装 Treesitter 解析器；
-5. Dashboard 显示 Ollama 在线状态（未安装 Ollama 时显示离线提示）。
+5. Dashboard 显示当前全局模型；补全使用本机时显示 Ollama 在线状态（未安装时显示离线提示）。
 
 首次安装可能较慢，取决于网络。安装完成后建议重启一次 Neovim。
 
@@ -334,9 +334,26 @@ nvim
 
 ---
 
-## 9. 可选：本机 AI
+## 9. 可选：AI
 
-### 安装 Ollama
+AI 默认使用云端模型（OpenCode 聚合平台），行内补全默认使用本机 Ollama。没有云端 Key 时会自动回退本机。
+
+### 云端 Key（推荐）
+
+```bash
+cp lua/crow/secrets.example.lua lua/crow/secrets.lua
+# 编辑 secrets.lua，填入 opencode = "sk-..."
+```
+
+也可以直接设环境变量：
+
+```bash
+export OPENCODE_API_KEY="sk-..."
+```
+
+### 本机 Ollama（补全 / 兜底）
+
+安装：
 
 ```bash
 # Arch
@@ -353,11 +370,11 @@ systemctl --user enable --now ollama
 ollama serve
 ```
 
-### 拉取模型
+拉取模型：
 
 ```bash
-ollama pull qwen2.5-coder:3b     # crow.ai / 文档翻译
-ollama pull qwen2.5-coder:1.5b   # 行内补全 / CodeCompanion
+ollama pull qwen2.5-coder:1.5b   # 行内补全（默认）
+ollama pull qwen2.5-coder:3b     # 本机兜底：对话 / 解释 / 翻译
 ```
 
 ### 验证
@@ -372,7 +389,7 @@ Neovim 内：
 :CrowAiStats
 ```
 
-Dashboard 也会显示 AI 状态。详见 [AI.md](AI.md)。
+Dashboard 会显示当前全局模型与补全状态。详见 [AI.md](AI.md)。
 
 ---
 

@@ -17,10 +17,10 @@
 -- 没手动改过开关的用户会自动跟上。
 --
 -- 开关清单（key / 出厂默认 / 作用）：
---   minuet         true   行内幽灵补全（minuet-ai.nvim + 1.5b）
---   codecompanion  true   对话 / 内联改写 / 结构化审查
+--   minuet         true   行内幽灵补全（minuet-ai.nvim，默认本机 1.5b）
+--   codecompanion  true   对话 / 内联改写 / 结构化审查（云端或本机）
 --   crow_ai        true   :CrowExplain · :CrowReview · :CrowAsk
---   translate      true   文档翻译（悬停文档 + 补全文档，走 Ollama）
+--   translate      true   文档翻译（悬停文档 + 补全文档，云端或本机）
 --   copilot_chat   true   CopilotChat.nvim（GitHub Copilot 对话）
 --
 -- 用法：

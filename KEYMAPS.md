@@ -362,10 +362,12 @@ Python 模板只在 `.py` buffer 中生效。
 
 ## AI
 
-### 本机 Ollama / CodeCompanion
+### AI（云端 / 本机）
 
 | 快捷键 | 功能 |
 |---|---|
+| `<leader>om` | AI 模型：一键切换到下一个可用模型 |
+| `<leader>oM` | AI 模型：打开选择面板（按供应商 / 角色选择） |
 | `<leader>oa` | AI 解释当前函数 / 选区 |
 | `<leader>or` | AI 审查代码 / 选区 |
 | `<leader>oq` | 带上下文向 AI 提问 |
@@ -373,6 +375,7 @@ Python 模板只在 `.py` buffer 中生效。
 | `<leader>oc` | 打开 / 关闭 AI 对话 |
 | `<leader>ov` | AI 动作面板 |
 | `<leader>oe` | AI 改写选区 |
+| `<leader>oR` | AI 结构化审查（逐 hunk 接受） |
 
 ### Copilot Chat
 
@@ -485,7 +488,7 @@ Python 模板只在 `.py` buffer 中生效。
 | `<leader>g` | Git（Go buffer 中部分为 Go） |
 | `<leader>h` | Harpoon / 清高亮 |
 | `<leader>n` | 文件树 / 通知 |
-| `<leader>o` | Ollama AI / 会话 |
+| `<leader>o` | AI（云端 / 本机）/ 会话 |
 | `<leader>p` | 文件查找 |
 | `<leader>q` | 退出 |
 | `<leader>r` | REST（仅 .http） |

@@ -17,7 +17,7 @@
 - [8. 搜索与文件树](#8-搜索与文件树)
 - [9. Treesitter](#9-treesitter)
 - [10. 剪贴板与字体](#10-剪贴板与字体)
-- [11. AI 与 Ollama](#11-ai-与-ollama)
+- [11. AI（云端 / 本机）](#11-ai云端--本机)
 - [12. Git 与插件更新](#12-git-与插件更新)
 - [13. 性能问题](#13-性能问题)
 - [14. 日志与反馈](#14-日志与反馈)
@@ -564,9 +564,23 @@ Neovim 只把背景设为 `NONE`。
 
 ---
 
-## 11. AI 与 Ollama
+## 11. AI（云端 / 本机）
 
-### `:CrowAiStats` 连接失败
+### `:CrowAiStats` 显示缺 API Key
+
+按优先级检查：
+
+1. `vim.g.crow_api_keys`；
+2. 环境变量（`echo $OPENCODE_API_KEY`）；
+3. `lua/crow/secrets.lua` 是否存在且键名正确。
+
+也可以直接切回本机：
+
+```vim
+:CrowModel global
+```
+
+### `:CrowAiStats` 显示 Ollama 未响应
 
 ```bash
 ollama serve
@@ -576,10 +590,25 @@ curl http://127.0.0.1:11434/api/tags
 
 ### 模型不存在
 
+云端：用 `:CrowModel` 面板里的「自定义模型 ID」核对供应商文档。
+本机：
+
 ```bash
 ollama list
 ollama pull qwen2.5-coder:1.5b
 ollama pull qwen2.5-coder:3b
+```
+
+### 提示「模型接口报错」/「模型没有返回内容」
+
+- 模型 ID 不在该供应商的支持列表；
+- 供应商不支持 `/chat/completions`，或 `base_url` 多了 / 少了 `/v1`；
+- 账号额度不足或 Key 无效；
+- 先用 curl 直接验证：
+
+```bash
+curl -sS https://opencode.ai/inference/openai/v1/models \
+  -H "Authorization: Bearer $OPENCODE_API_KEY" | head
 ```
 
 ### 补全不出现
@@ -588,6 +617,7 @@ ollama pull qwen2.5-coder:3b
 - 是否在插入模式；
 - 是否刚停止输入 400ms；
 - `:messages` 是否有 minuet 报错；
+- 补全默认固定本机：`:CrowModel complete` 确认指向 Ollama；
 - Ollama 是否在线。
 
 ### 翻译不出现
@@ -595,7 +625,7 @@ ollama pull qwen2.5-coder:3b
 - 文本已是中文；
 - 文本几乎是纯代码；
 - 超过 8000 字符；
-- Ollama 离线。
+- 云端缺 Key 且本机离线（看 `:messages`）。
 
 ### 回答很慢 / 卡住
 
@@ -603,13 +633,12 @@ ollama pull qwen2.5-coder:3b
 :CrowAiStop
 ```
 
-然后：
+云端用 `:CrowModel` 换更快的模型；本机降低 `num_ctx` / `max_tokens`，或换 1.5B。
+本机还可以看：
 
 ```bash
 ollama ps
 ```
-
-降低 `num_ctx` / `num_predict`，或换 1.5B。
 
 ### `Bearer nil` 崩溃
 
@@ -617,11 +646,11 @@ minuet 的 `api_key` 必须返回字符串。配置里已经写成函数：
 
 ```lua
 api_key = function()
-  return "ollama"
+  return require("crow.models").key(complete.provider_name) or "ollama"
 end
 ```
 
-不要改成环境变量，Neovide 从桌面启动时环境变量可能为空。
+不要改成环境变量名，Neovide 从桌面启动时环境变量可能为空。
 
 ---
 

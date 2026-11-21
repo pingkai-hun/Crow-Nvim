@@ -1,0 +1,45 @@
+-- ═══════════════════════════════════════════════════════════
+-- crow.models_user —— 自定义供应商 / 模型（此文件不会被提交）
+-- ═══════════════════════════════════════════════════════════
+--
+-- 复制为 lua/crow/models_user.lua 后按需修改。同名 provider 会深度覆盖
+-- lua/crow/models.lua 里的内置配置，因此可以只写要改的字段。
+--
+-- 例 1：给 OpenCode 追加一个刚发布的新模型
+--   return {
+--     providers = {
+--       opencode = {
+--         models = {
+--           { id = "kimi-k2.6", name = "Kimi K2.6" },
+--           { id = "brand-new-model", name = "新模型" },
+--         },
+--       },
+--     },
+--   }
+--
+-- 例 2：接入公司内网 / 自建 OpenAI 兼容网关
+--   return {
+--     order = { "my_gateway", "opencode", "ollama" },
+--     providers = {
+--       my_gateway = {
+--         label = "公司网关",
+--         protocol = "openai",
+--         base_url = "https://llm.example.com/v1",
+--         env = "MY_GATEWAY_KEY",
+--         requires_key = true,
+--         defaults = {
+--           chat = "qwen3.7-plus",
+--           inline = "qwen3.7-plus",
+--           analyze = "qwen4-max",
+--           translate = "qwen3.8-flash",
+--         },
+--         models = {
+--           { id = "qwen4-max", name = "Qwen4 Max" },
+--           { id = "qwen3.7-plus", name = "Qwen3.7 Plus" },
+--         },
+--         cycle = { "qwen4-max", "qwen3.7-plus" },
+--       },
+--     },
+--   }
+
+return {}

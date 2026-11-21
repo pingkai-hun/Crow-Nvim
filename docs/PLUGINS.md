@@ -203,12 +203,14 @@ LazyVim extras：
 
 | 插件 | 作用 | 模型 / 配置 |
 |---|---|---|
-| `milanglacier/minuet-ai.nvim` | 行内幽灵补全 | `qwen2.5-coder:1.5b`；`minuet.lua` |
-| `olimorris/codecompanion.nvim` | 对话 / 内联改写 / 动作面板 | `qwen2.5-coder:1.5b`；`codecompanion.lua` |
+| `milanglacier/minuet-ai.nvim` | 行内幽灵补全 | 默认本机 `qwen2.5-coder:1.5b`；`minuet.lua` |
+| `olimorris/codecompanion.nvim` | 对话 / 内联改写 / 动作面板 | 全局云端模型；`codecompanion.lua` |
 | `zbirenbaum/copilot.lua` | GitHub Copilot 行内补全（默认关闭） | `copilot.lua` |
 | `CopilotC-Nvim/CopilotChat.nvim` | Copilot 对话 | `copilot-chat.lua` |
-| `crow.ai`（自定义） | 解释 / 审查 / 提问 / 状态 | `qwen2.5-coder:3b`；`lua/crow/ai.lua` |
-| `crow.translate`（自定义） | 悬浮文档 / 补全文档翻译 | `qwen2.5-coder:3b`；`lua/crow/translate.lua` |
+| `crow.ai`（自定义） | 解释 / 审查 / 提问 / 状态 | 全局云端模型；`lua/crow/ai.lua` |
+| `crow.models`（自定义） | 多供应商注册表 / 模型切换 | `lua/crow/models.lua` |
+| `crow.llm`（自定义） | 统一流式客户端 | `lua/crow/llm.lua` |
+| `crow.translate`（自定义） | 悬浮文档 / 补全文档翻译 | 全局云端模型；`lua/crow/translate.lua` |
 
 详见 [AI.md](AI.md)。
 

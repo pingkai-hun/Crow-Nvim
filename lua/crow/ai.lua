@@ -1,7 +1,11 @@
 -- ============================================================================
--- crow.ai —— 本机 3B 模型辅助代码分析
+-- crow.ai —— 云端模型辅助代码分析
 -- ============================================================================
--- 本机通过 Ollama 部署了 qwen2.5-coder:3b（32768 上下文，Q4_K_M）。
+-- 模型由 crow.models 统一决定（默认 OpenCode 聚合平台，无 Key 时用本机 Ollama）：
+--   对话 / 审查 / 翻译 → 全局模型
+--   行内补全           → 本机 Ollama（保持低延迟）
+-- 用 <leader>om 一键切换，<leader>oM 打开面板。
+--
 -- 这个模块把「分析代码」做成一条顺手的工作流，而不是让用户自己拼 prompt：
 --
 --   :CrowExplain [范围]   解释当前函数 / 可视选区 / 光标所在代码块
@@ -9,12 +13,13 @@
 --   :CrowAsk     [问题]   带着文件上下文提问（不选中也能问）
 --   :CrowStats            看看模型 / 服务状态
 --
--- 实现上直接调 Ollama 的 /api/chat（流式），结果写进一个可复用的浮窗：
+-- 实现上通过 crow.llm 发起流式请求（OpenAI 兼容 SSE / Ollama NDJSON），
+-- 结果写进一个可复用的浮窗：
 --   · 不依赖 codecompanion 也能用（那边留给对话式编辑）
---   · 流式输出，3B 模型首 token 约 1 秒，不用干等
---   · 失败时给出明确原因（服务没起 / 模型没拉 / 超时），不让用户猜
+--   · 流式输出，不用干等
+--   · 失败时给出明确原因（缺 Key / 服务没起 / 模型没拉 / 超时），不让用户猜
 --
--- 快捷键（which-key 分组 <leader>o = Ollama）：
+-- 快捷键（which-key 分组 <leader>o = AI）：
 --   <leader>oa  分析 / 解释当前函数（普通模式）
 --   <leader>or  审查当前文件或选区
 --   <leader>oq  带上下文提问
@@ -22,10 +27,10 @@
 
 local M = {}
 
-local MODEL = "qwen2.5-coder:3b"
-local ENDPOINT = "http://127.0.0.1:11434/api/chat"
+local models = require("crow.models")
+local llm = require("crow.llm")
 
--- 分析用的系统提示：3B 模型指令遵循能力一般，提示要短、明确、只做一件事。
+-- 分析用的系统提示：结论先行、简短明确。
 local SYSTEM = table.concat({
   "你是一名资深代码审查员。回答用简体中文，结论先行。",
   "不要客套话，不要重复用户代码全文。",
@@ -79,26 +84,19 @@ function M.collect(explicit)
   return table.concat(lines, "\n"), desc
 end
 
---- 拼装请求体。
+--- 拼装发给模型的 user 消息。
 ---@param task string 任务说明
 ---@param code? string 待分析的代码
-local function build_body(task, code)
+---@return string
+local function build_prompt(task, code)
   local filetype = vim.bo.filetype
-  local content = string.format("【任务】%s\n\n【语言】%s\n\n【代码】\n```%s\n%s\n```",
-    task, filetype ~= "" and filetype or "text", filetype, code or "")
-  return vim.json.encode({
-    model = MODEL,
-    stream = true,
-    messages = {
-      { role = "system", content = SYSTEM },
-      { role = "user", content = content },
-    },
-    options = {
-      temperature = 0.2, -- 分析类任务要稳定，不要发挥
-      num_ctx = 8192, -- 3B 支持 32k，8k 够用且更快
-      num_predict = 1024, -- 单次回答上限，防止胡说八道拖时间
-    },
-  })
+  return string.format(
+    "【任务】%s\n\n【语言】%s\n\n【代码】\n```%s\n%s\n```",
+    task,
+    filetype ~= "" and filetype or "text",
+    filetype,
+    code or ""
+  )
 end
 
 -- ── 输出浮窗 ────────────────────────────────────────────────────────────
@@ -173,7 +171,7 @@ end
 
 -- ── 核心：流式请求 ──────────────────────────────────────────────────────
 -- ── 审查结果去重 ────────────────────────────────────────────────────────
--- 3B 模型的指令遵循不够稳：同一个问题常常被套进好几个分类重复列出。
+-- 模型的指令遵循不一定稳：同一个问题常常被套进好几个分类重复列出。
 -- 与其反复调 prompt（既费时又不保证），不如在展示层做去重：
 --   · 提取每条的「修复建议正文」，完全相同视为同一问题，只保留最严重的那条
 --   · 按 Bug > 安全 > 性能 > 可维护性 排序，方便先看要紧的
@@ -185,7 +183,7 @@ local LEVEL_ORDER = { ["Bug"] = 1, ["安全"] = 2, ["性能"] = 3, ["可维护�
 local function dedup_review(text)
   local items, others = {}, {}
   for _, line in ipairs(vim.split(text, "\n", { plain = true })) do
-    -- 3B 输出的级别写法不固定，这里同时兼容：
+    -- 模型输出的级别写法不固定，这里同时兼容：
     --   - **[安全] 使用参数化查询**（第 3 行）— ...
     --   - **Bug** SQL 注入风险（1）— ...
     --   - **[Bug] SQL 注入**
@@ -240,7 +238,7 @@ local function dedup_review(text)
     out[#out + 1] = it.raw
   end
   -- 模型额外的前言/结论保留在末尾，但要去掉自相矛盾的「未发现问题」
-  -- （3B 常常先列出问题，末尾又补一句「未发现问题」）。
+  -- （模型常常先列出问题，末尾又补一句「未发现问题」）。
   if #others > 0 then
     local keep = {}
     for _, l in ipairs(others) do
@@ -269,84 +267,59 @@ function M.request(task, code, title, transform)
     return
   end
 
-  local body = build_body(task, code)
+  local sel = models.resolve("analyze", nil, nil)
   local buf = open_float(title or "AI 分析")
-  local pending = ""   -- 不完整的 JSON 行（跨块）
-  local text = ""      -- 累积的正文（按 token 拼接，最后整体渲染）
   local started = vim.uv.now()
+  local header = string.format("_%s / %s · 分析中…_", sel.provider_label, sel.model)
 
-  local function on_chunk(_, data, _)
-    -- jobstart 的 on_stdout 回调里 data 是「按行切好的数组」，
-    -- 最后一段可能是不完整的行（下一块数据会接上）。
-    -- 不能直接 pending .. data，那会报 attempt to concatenate (a table value)。
-    if type(data) ~= "table" then
-      return
+  local function on_error(msg, partial)
+    state.job = nil
+    local body = partial or ""
+    render(body, "_请求失败：" .. msg .. "_")
+    if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+      vim.bo[state.buf].modifiable = false
     end
-    local got = false
-    for i, piece in ipairs(data) do
-      local is_last = (i == #data)
-      if is_last then
-        -- 半行：留到下次
-        pending = pending .. piece
-      else
-        local line = pending .. piece
-        pending = ""
-        if line ~= "" then
-          local ok, obj = pcall(vim.json.decode, line)
-          if ok and obj then
-            if obj.error then
-              text = text .. "\n**错误**: " .. tostring(obj.error) .. "\n"
-              got = true
-            elseif obj.message and obj.message.content then
-              -- 关键：按 token 累积，不要逐块换行
-              text = text .. obj.message.content
-              got = true
-            end
-          end
-        end
-      end
-    end
-    if got then
-      render(text, "_" .. MODEL .. " · 分析中…_")
-    end
+    notify(msg, vim.log.levels.ERROR)
   end
 
-  local function on_exit(_, code2)
+  local function on_done(text)
     state.job = nil
     local secs = (vim.uv.now() - started) / 1000
-    if code2 ~= 0 then
-      render(text, string.format("_请求失败（退出码 %d）。检查：ollama serve 是否在跑，模型是否已拉取。_", code2))
-    else
-      local final = text
-      if transform then
-        local ok2, res = pcall(transform, text)
-        if ok2 and type(res) == "string" then
-          final = res
-        end
+    local final = text
+    if transform then
+      local ok2, res = pcall(transform, text)
+      if ok2 and type(res) == "string" then
+        final = res
       end
-      render(final, string.format("_完成，用时 %.1fs · %s_", secs, MODEL))
     end
+    render(final, string.format("_完成，用时 %.1fs · %s / %s_", secs, sel.provider_label, sel.model))
     if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
       vim.bo[state.buf].modifiable = false
     end
   end
 
-  state.job = vim.fn.jobstart({
-    "curl", "-sN", "--max-time", "180",
-    "-H", "Content-Type: application/json",
-    "-d", body,
-    ENDPOINT,
-  }, {
-    stdout_buffered = false,
-    on_stdout = on_chunk,
-    on_exit = on_exit,
+  state.job = llm.stream({
+    role = "analyze",
+    system = SYSTEM,
+    messages = { { role = "user", content = build_prompt(task, code) } },
+    temperature = 0.2, -- 只对声明了 temperature_supported 的供应商生效
+    max_tokens = 1024, -- 单次回答上限，防止拖时间
+    num_ctx = 8192, -- 仅本机 Ollama 使用
+    timeout = 180,
+    on_chunk = function(total)
+      render(total, header)
+    end,
+    on_done = on_done,
+    on_error = on_error,
   })
 
-  if state.job <= 0 then
+  if not state.job then
     state.job = nil
-    append("**无法启动 curl。** 请确认系统里有 curl。")
+    if not sel.missing_key then
+      append("**无法启动请求。** 请确认系统里有 curl。")
+    end
   else
-    render("", string.format("_%s · 分析中…_", MODEL))
+    render("", header)
   end
   return buf
 end
@@ -354,7 +327,7 @@ end
 -- ── 中断 ────────────────────────────────────────────────────────────────
 function M.stop()
   if state.job then
-    vim.fn.jobstop(state.job)
+    llm.cancel(state.job)
     state.job = nil
     notify("已中断当前分析", vim.log.levels.WARN)
   else
@@ -399,7 +372,7 @@ function M.ask(question)
       return
     end
   end
-  -- 带上整个文件的上下文（截断到 400 行），3B 的 8k 上下文足够
+  -- 带上整个文件的上下文（截断到 400 行；对云端模型也很轻量）
   local lines = vim.api.nvim_buf_get_lines(0, 0, math.min(vim.api.nvim_buf_line_count(0), 400), false)
   local code = table.concat(lines, "\n")
   M.request(question, code, "提问")
@@ -407,32 +380,50 @@ end
 
 -- ── 状态 ────────────────────────────────────────────────────────────────
 function M.stats()
-  local out = { "本机 AI 状态", string.rep("─", 36) }
+  local out = { "AI 状态", string.rep("─", 44) }
   if vim.fn.executable("curl") == 0 then
     out[#out + 1] = "✘ 未安装 curl"
-  else
-    local raw = vim.fn.system({ "curl", "-s", "--max-time", "1", "http://127.0.0.1:11434/api/tags" })
-    if vim.v.shell_error ~= 0 or raw == "" then
-      out[#out + 1] = "✘ Ollama 未响应（运行 ollama serve 启动）"
-    else
-      out[#out + 1] = "✔ Ollama 服务在线"
-      local ok, data = pcall(vim.json.decode, raw)
-      if ok and data.models then
-        for _, m in ipairs(data.models) do
-          local name = m.name or m.model or "?"
-          local gb = (m.size or 0) / 1024 / 1024 / 1024
-          out[#out + 1] = string.format("  %s %-20s %.1f GB", name == MODEL and "→" or " ", name, gb)
-        end
-      end
+  end
+
+  for _, role in ipairs(models.roles) do
+    local sel = models.resolve(role)
+    local flag = sel.missing_key and "✘" or "✔"
+    local extra = ""
+    if sel.missing_key then
+      extra = "  (缺 " .. (sel.env or "API Key") .. ")"
+    elseif models.is_local(sel.provider_name) then
+      extra = "  (本机)"
+    end
+    out[#out + 1] = string.format("%s %-10s %s / %s%s", flag, models.role_labels[role] or role,
+      sel.provider_label, sel.model, extra)
+  end
+
+  out[#out + 1] = ""
+  out[#out + 1] = "已配置 Key 的供应商："
+  local any = false
+  for _, name in ipairs(models.order) do
+    local p = models.providers[name]
+    if models.is_local(name) then
+      local raw = vim.fn.system({ "curl", "-s", "--max-time", "0.5", p.base_url .. "/api/tags" })
+      local online = vim.v.shell_error == 0 and raw ~= ""
+      out[#out + 1] = string.format("  %s %-18s 本机%s", online and "●" or "○", p.label or name,
+        online and "在线" or "未响应")
+    elseif models.key(name) then
+      any = true
+      out[#out + 1] = string.format("  ● %-18s %s", p.label or name, p.env or "")
     end
   end
+  if not any then
+    out[#out + 1] = "  （无云端 Key：设置 OPENCODE_API_KEY 或 lua/crow/secrets.lua）"
+  end
+
   out[#out + 1] = ""
-  out[#out + 1] = "在用的模型: " .. MODEL
-  out[#out + 1] = "快捷键: <leader>oa 解释 · <leader>or 审查 · <leader>oq 提问"
+  out[#out + 1] = "快捷键: <leader>om 切换模型 · <leader>oM 选择面板"
+  out[#out + 1] = "        <leader>oa 解释 · <leader>or 审查 · <leader>oq 提问"
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, out)
-  local width = 56
+  local width = 60
   local height = #out + 2
   vim.api.nvim_open_win(buf, true, {
     relative = "editor",
@@ -502,7 +493,7 @@ function M.setup()
 
   pcall(function()
     require("which-key").add({
-      { "<leader>o", group = "Ollama / AI" },
+      { "<leader>o", group = "AI" },
       { "<leader>oa", desc = "AI 解释" },
       { "<leader>or", desc = "AI 审查" },
       { "<leader>oq", desc = "AI 提问" },

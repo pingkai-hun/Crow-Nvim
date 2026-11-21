@@ -6,7 +6,7 @@
 -- 文档的入口是 noice.lsp.hover.on_hover。这里包一层：
 --
 --   · 先按原文弹出，阅读不等待
---   · 同时把文档交给 crow.translate 流式翻译（Ollama）
+--   · 同时把文档交给 crow.translate 流式翻译（云端，无 Key 时用本机）
 --   · 每收到一段译文就原地刷新 noice 的 hover 消息
 --
 -- 有缓存时直接弹中文，避免英文一闪而过。

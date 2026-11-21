@@ -24,39 +24,30 @@ local header = [[
 ╚═╝  ╚═══╝  ╚═══╝  ╚═╝╚═╝     ╚═╝
 ]]
 
--- ─── 本机 AI 状态 section ──────────────────────────────────
--- snacks 的 dashboard 支持自定义 section：
---   往 snacks.dashboard.sections 里注册同名函数即可，
---   返回值格式与内置 startup 一致：{ align = ..., text = { {文字, hl=...}, ... } }
---
--- 这里探测本机 Ollama（qwen2.5-coder:3b）是否在线，让启动页一眼看到
--- 代码分析功能能不能用；离线时给出启动命令提示。
-local MODEL = "qwen2.5-coder:3b"
+-- ─── AI 状态 section ───────────────────────────────────────
+-- 启动页只显示「当前全局模型 + 补全状态」，不主动请求云端（避免拖慢启动、
+-- 也不在启动阶段消耗额度）。只有补全走本机时，才去探测 Ollama 是否在线。
+local models = require("crow.models")
 
-local function ollama_online()
+local function ollama_online(base_url, model)
   if vim.fn.executable("curl") == 0 then
     return false, "未安装 curl"
   end
-  -- 快速探活：0.5 秒超时，不阻塞启动
-  local out = vim.fn.system({ "curl", "-s", "--max-time", "0.5", "http://127.0.0.1:11434/api/tags" })
+  local out = vim.fn.system({ "curl", "-s", "--max-time", "0.5", base_url .. "/api/tags" })
   if vim.v.shell_error ~= 0 or type(out) ~= "string" or out == "" then
     return false, nil
   end
-  -- 用 JSON 解析而不是字符串匹配：
-  -- tags 接口返回 {"models":[{"name": "...", "model": "..."}, ...]}
   local ok, data = pcall(vim.json.decode, out)
   if not ok or type(data) ~= "table" or type(data.models) ~= "table" then
-    -- 解析失败时退回字符串匹配（兼容不同的 ollama 版本）
-    return true, out:find(MODEL, 1, true) and nil or ("缺少模型 " .. MODEL)
+    return true, out:find(model, 1, true) and nil or ("缺少模型 " .. model)
   end
   for _, m in ipairs(data.models) do
-    -- 模型名可能是 "qwen2.5-coder:3b" 或 "qwen2.5-coder:3b-instruct-q4_K_M"
     local name = m.name or m.model or ""
-    if name == MODEL or name:sub(1, #MODEL) == MODEL.."-" then
+    if name == model or name:sub(1, #model) == model .. "-" then
       return true, nil
     end
   end
-  return true, "缺少模型 " .. MODEL
+  return true, "缺少模型 " .. model
 end
 
 local registered = false
@@ -73,32 +64,52 @@ local function register_ai_section()
 
   Snacks.dashboard.sections.ai = function(opts)
     opts = opts or {}
-    local online, issue = ollama_online()
     local icon = opts.icon or " "
-    local parts
-    if online and not issue then
-      parts = {
-        { icon .. "AI ", hl = "footer" },
-        { MODEL, hl = "special" },
-        { " 在线 · ", hl = "footer" },
-        { "<leader>oa", hl = "special" },
-        { " 解释代码", hl = "footer" },
-      }
-    elseif issue then
-      parts = {
-        { icon .. "AI ", hl = "footer" },
-        { issue, hl = "DiagnosticWarn" },
-        { " · ollama pull " .. MODEL, hl = "footer" },
-      }
+    local chat = models.resolve("chat")
+    local complete = models.resolve("complete")
+
+    local parts = {
+      { icon .. "AI ", hl = "footer" },
+      { chat.model, hl = "special" },
+      { " · " .. chat.provider_label, hl = "footer" },
+      { " · 补全 ", hl = "footer" },
+    }
+
+    if complete.protocol == "ollama" then
+      local online, issue = ollama_online(models.base_url(complete.provider_name), complete.model)
+      if online and not issue then
+        vim.list_extend(parts, {
+          { complete.model .. " 在线", hl = "footer" },
+        })
+      elseif issue then
+        vim.list_extend(parts, {
+          { issue, hl = "DiagnosticWarn" },
+          { " · ollama pull " .. complete.model, hl = "footer" },
+        })
+      else
+        vim.list_extend(parts, {
+          { "Ollama 离线", hl = "DiagnosticError" },
+          { " · ollama serve", hl = "special" },
+        })
+      end
     else
-      parts = {
-        { icon .. "AI ", hl = "footer" },
-        { "离线", hl = "DiagnosticError" },
-        { " · 运行 ", hl = "footer" },
-        { "ollama serve", hl = "special" },
-        { " 后可用", hl = "footer" },
-      }
+      vim.list_extend(parts, {
+        { complete.model, hl = "footer" },
+      })
     end
+
+    if chat.missing_key then
+      vim.list_extend(parts, {
+        { " · 缺 " .. (chat.env or "API Key"), hl = "DiagnosticWarn" },
+      })
+    else
+      vim.list_extend(parts, {
+        { " · ", hl = "footer" },
+        { "<leader>om", hl = "special" },
+        { " 切换", hl = "footer" },
+      })
+    end
+
     return { align = "center", text = parts, padding = 1 }
   end
 end
@@ -124,7 +135,7 @@ return {
       },
 
       -- ─── Sections ──────────────────────────────────────────
-      -- header → 本机 AI 状态 → 快捷键 → 启动耗时
+      -- header → AI 状态 → 快捷键 → 启动耗时
       sections = {
         { section = "header", padding = 2 },
         { section = "ai" },

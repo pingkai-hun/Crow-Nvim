@@ -42,7 +42,7 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 - 用 Neovim 原生 LSP + `blink.cmp` + `conform.nvim` 替代了 coc.nvim；
 - 用 `snacks.nvim` 替代 fzf.vim / telescope 作为默认选择器；
 - 用 `nvim-dap` 替代 vimspector；
-- 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以走本机 Ollama 翻译；
+- 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以自动翻译成中文；
 - 所有「为什么这么配」都写在对应 Lua 文件的头部注释里，方便日后自己改。
 
 当前版本为 **v1.0.0**。从 v1.0.0 起遵循语义化版本：
@@ -62,10 +62,10 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 
 ### 启动页
 
-<img src="docs/images/dashboard.jpg" width="900" alt="CrowNvim 启动页：CrowNvim 艺术字、本机模型状态、快捷键列表、启动耗时">
+<img src="docs/images/dashboard.jpg" width="900" alt="CrowNvim 启动页：CrowNvim 艺术字、AI 模型状态、快捷键列表、启动耗时">
 
 - **艺术字**：`CrowNvim` 两行式大字，定义在 `lua/plugins/ui-dashboard.lua` 的 `header`，宽度压到 35 列以内，窄终端也不折行；
-- **AI 状态行**：`AI qwen2.5-coder:3b 在线 · <leader>oa 解释代码`——启动时就读一次 Ollama 的 `/api/tags`，没在跑会提示离线，不会卡住启动；
+- **AI 状态行**：显示当前全局模型、供应商与行内补全状态；只有补全走本机时才探测 Ollama，不会因为云端请求拖慢启动；
 - **快捷键列表**：`f` 找文件、`n` 新建、`p` 项目、`g` 全文搜索、`r` 最近文件、`c` 配置、`s` 恢复会话、`x` Lazy Extras、`l` Lazy、`q` 退出；
 - **启动耗时**：右下角 `Neovim loaded N/M plugins in xx ms`，方便随时观察有没有插件拖慢启动。
 
@@ -150,12 +150,14 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 
 ### AI
 
-- **本机 Ollama**（完全离线）：
-  - `minuet-ai.nvim` 行内幽灵补全（`qwen2.5-coder:1.5b`）；
-  - `codecompanion.nvim` 对话 / 内联改写（`qwen2.5-coder:1.5b`）；
-  - `crow.ai` 代码解释 / 审查 / 提问（`qwen2.5-coder:3b`）；
-  - LSP 悬浮文档与补全文档自动翻译成中文（`qwen2.5-coder:3b`）。
-- **GitHub Copilot**（可选，需登录）：CopilotChat 对话；行内补全默认关闭，避免和本地模型抢幽灵文本。
+- **云端模型 + 本机补全**：
+  - `minuet-ai.nvim` 行内幽灵补全（默认本机 Ollama `qwen2.5-coder:1.5b`，低延迟）；
+  - `codecompanion.nvim` 对话 / 内联改写 / 结构化审查（默认 OpenCode 聚合平台）；
+  - `crow.ai` 代码解释 / 审查 / 提问（云端）；
+  - LSP 悬浮文档与补全文档自动翻译成中文（云端）；
+  - `<leader>om` 一键切换全局模型，`<leader>oM` 打开选择面板；也支持 OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动；
+  - 没有云端 Key 时自动回退本机 Ollama，开箱可用。
+- **GitHub Copilot**（可选，需登录）：CopilotChat 对话；行内补全默认关闭，避免和 minuet 抢幽灵文本。
 
 ### 通知与 UI
 
@@ -177,7 +179,7 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 │                                                              │
 │   CrowNvim Dashboard                                         │
 │   ┌──────────────┐  ┌──────────────────────────────┐         │
-│   │ 最近文件      │  │ 本机 AI 状态（Ollama 探活）   │         │
+│   │ 最近文件      │  │ AI 模型 + 补全状态           │         │
 │   │ 快捷动作      │  │ 插件数量 / 启动耗时           │         │
 │   └──────────────┘  └──────────────────────────────┘         │
 │                                                              │
@@ -186,7 +188,7 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 └──────────────────────────────────────────────────────────────┘
 ```
 
-Dashboard 的 ASCII 头是「CROW NVIM」两行式大字，窄终端也不会折行。右侧会探测 `http://127.0.0.1:11434`，显示 Ollama 是否在线以及模型是否已拉取。
+Dashboard 的 ASCII 头是「CROW NVIM」两行式大字，窄终端也不会折行。AI 行会显示当前全局模型；只有当行内补全使用本机模型时，才探测 `http://127.0.0.1:11434` 并显示 Ollama 是否在线、模型是否已拉取。
 
 ---
 
@@ -280,15 +282,28 @@ nvim +checkhealth
 
 | 依赖 | 用途 |
 |---|---|
-| [Ollama](https://ollama.com/) | 本地模型服务 |
-| `qwen2.5-coder:3b` | `crow.ai`、文档翻译 |
-| `qwen2.5-coder:1.5b` | 行内补全、CodeCompanion 对话 |
+| 云端 API Key | 对话 / 解释 / 审查 / 翻译（默认 OpenCode，可在 `secrets.lua` 配置多家） |
+| [Ollama](https://ollama.com/) | 行内补全（默认）与无 Key 时的离线兜底 |
+| `qwen2.5-coder:1.5b` | 行内补全 |
+| `qwen2.5-coder:3b` | 本机兜底：对话 / 解释 / 翻译 |
 | GitHub Copilot 订阅 | CopilotChat（可选） |
 
 ```bash
+# 本机补全 / 兜底
 ollama serve
-ollama pull qwen2.5-coder:3b
 ollama pull qwen2.5-coder:1.5b
+ollama pull qwen2.5-coder:3b
+
+# 云端模型（任选其一；也可直接 export 环境变量）
+cp lua/crow/secrets.example.lua lua/crow/secrets.lua
+# 编辑 secrets.lua，填入 opencode = "sk-..."
+```
+
+设置环境变量的写法同样可用：
+
+```bash
+export OPENCODE_API_KEY="sk-..."
+export OPENROUTER_API_KEY="sk-or-..."
 ```
 
 ---
@@ -318,8 +333,12 @@ ollama pull qwen2.5-coder:1.5b
     │   ├── options.lua      # 在 LazyVim 之后写回选项
     │   ├── theme.lua        # 语义色板 + ColorScheme 高亮增强
     │   ├── palette.lua      # Catppuccin 四套 flavor 的语义颜色表
-    │   ├── ai.lua           # 本机 Ollama 代码解释 / 审查 / 提问
-    │   ├── translate.lua    # Ollama 流式翻译（缓存 + 串行队列）
+    │   ├── ai.lua           # 代码解释 / 审查 / 提问（云端，无 Key 用本机）
+    │   ├── llm.lua          # 统一流式客户端（OpenAI SSE / Ollama NDJSON）
+    │   ├── models.lua       # 多供应商模型注册表 + :CrowModel 切换
+    │   ├── translate.lua    # 流式翻译（缓存 + 串行队列）
+    │   ├── secrets.example.lua      # API Key 模板（复制为 secrets.lua）
+    │   ├── models_user.example.lua  # 自定义供应商 / 模型模板
     │   ├── doctor.lua       # :Doctor 环境体检
     │   └── guard.lua        # which-key 启动期防御
     └── plugins/             # 每个文件一个插件或一组插件
@@ -347,10 +366,11 @@ ollama pull qwen2.5-coder:1.5b
 require("config.options")   -- 1. 选项必须先于 LazyVim
 require("config.neovide")   -- 2. 仅 GUI 生效
 require("crow").setup()     -- 3. 公共命令 / 主题 / 会话
-require("crow.ai").setup()  -- 4. 本机 AI 命令
-require("config.keymaps")   -- 5. 全局快捷键
-require("config.autocmds")  -- 6. 自动命令
-require("config.lazy")      -- 7. 最后启动 lazy.nvim
+require("crow.models").setup() -- 4. AI 模型注册表 / :CrowModel / om
+require("crow.ai").setup()  -- 5. AI 分析命令
+require("config.keymaps")   -- 6. 全局快捷键
+require("config.autocmds")  -- 7. 自动命令
+require("config.lazy")      -- 8. 最后启动 lazy.nvim
 ```
 
 其中有两个容易踩的坑，配置里已经处理：
@@ -389,11 +409,12 @@ require("config.lazy")      -- 7. 最后启动 lazy.nvim
 | `:CrowExplain` | AI 解释当前函数 / 选区 |
 | `:CrowReview` | AI 审查代码 |
 | `:CrowAsk <问题>` | 带上下文向 AI 提问 |
-| `:CrowAiStats` | 本机 AI 状态 |
+| `:CrowModel [next\|global\|chat\|inline\|analyze\|translate\|complete]` | 切换 / 选择 AI 模型 |
+| `:CrowAiStats` | AI 模型、供应商与 Key 状态 |
 | `:CrowAiStop` | 中断 AI 请求 |
 | `:CodeCompanionChat` | 打开 CodeCompanion 对话 |
 | `:Copilot auth` | 登录 GitHub Copilot |
-| `scripts/features.sh` | 交互开关本机 AI 功能（补全 / 对话 / 翻译 …） |
+| `scripts/features.sh` | 交互开关 AI 功能（补全 / 对话 / 翻译 …） |
 
 ---
 
@@ -422,6 +443,7 @@ require("config.lazy")      -- 7. 最后启动 lazy.nvim
 | `<F7>` | 浮动终端 |
 | `<F8>` | 代码大纲 |
 | `<leader>cv` / `<leader>cV` / `<leader>cvr` | 选择 venv / 取消 / 重启 Python LSP |
+| `<leader>om` / `<leader>oM` | AI 模型一键切换 / 选择面板 |
 | `<leader>oa` / `<leader>or` / `<leader>oq` / `<leader>oi` | AI 解释 / 审查 / 提问 / 状态 |
 | `<leader>nn` / `<leader>nd` | 通知历史 / 关闭通知 |
 | `<leader>?` | 当前 buffer 键位 |
@@ -457,16 +479,18 @@ CrowNvim 对 Python 做了专门处理：
 
 ## AI 能力
 
-| 能力 | 插件 / 模块 | 模型 | 触发方式 |
+| 能力 | 插件 / 模块 | 默认模型 | 触发方式 |
 |---|---|---|---|
-| 行内补全 | `minuet-ai.nvim` | `qwen2.5-coder:1.5b` | 插入模式自动触发 |
-| 对话 / 内联改写 | `codecompanion.nvim` | `qwen2.5-coder:1.5b` | `:CodeCompanionChat` 等 |
-| 代码解释 / 审查 / 提问 | `crow.ai` | `qwen2.5-coder:3b` | `<leader>oa` / `or` / `oq` |
-| 悬浮文档翻译 | `crow.translate` + `noice` | `qwen2.5-coder:3b` | 自动 |
-| 补全文档翻译 | `crow.translate` + `blink.cmp` | `qwen2.5-coder:3b` | 自动 |
+| 行内补全 | `minuet-ai.nvim` | 本机 `qwen2.5-coder:1.5b` | 插入模式自动触发 |
+| 对话 / 内联改写 | `codecompanion.nvim` | 全局模型（默认 OpenCode） | `:CodeCompanionChat` 等 |
+| 代码解释 / 审查 / 提问 | `crow.ai` | 全局模型（默认 OpenCode） | `<leader>oa` / `or` / `oq` |
+| 悬浮文档翻译 | `crow.translate` + `noice` | 全局模型 | 自动 |
+| 补全文档翻译 | `crow.translate` + `blink.cmp` | 全局模型 | 自动 |
 | Copilot Chat | `CopilotChat.nvim` | GitHub Copilot | `<leader>aa` 等 |
 
-所有本地 AI 都要求 Ollama 正在运行。Dashboard 会显示在线状态；`:CrowAiStats` 可以查看模型和服务详情。
+模型由 `lua/crow/models.lua` 统一管理：`<leader>om` 在可用模型间循环，`<leader>oM` 打开面板，也可以 `:CrowModel analyze` 只给某个角色换模型。行内补全默认固定走本机 Ollama，不跟随全局切换。
+
+云端 Key 的读取顺序：`vim.g.crow_api_keys` → 环境变量 → `lua/crow/secrets.lua`。没有 Key 时自动回退本机 Ollama；`:CrowAiStats` 可以查看每个角色的供应商、模型和缺 Key 状态。
 
 详见 **[docs/AI.md](docs/AI.md)**。
 
@@ -536,7 +560,7 @@ git -C ~/.config/nvim checkout <commit> -- .
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 加载顺序、分层设计、选项写回、关键兼容处理 |
 | [docs/PLUGINS.md](docs/PLUGINS.md) | 插件清单与职责划分 |
 | [docs/CUSTOMIZE.md](docs/CUSTOMIZE.md) | 如何加插件、改键位、换主题、加 LSP / 格式化器 |
-| [docs/AI.md](docs/AI.md) | 本机 Ollama、Copilot、翻译链路、模型选择 |
+| [docs/AI.md](docs/AI.md) | 云端多供应商、模型切换、本机补全、Copilot、翻译链路 |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | 常见报错与修复方法 |
 | [extras/README.md](extras/README.md) | 未启用的备选配置（配色）与启用方法 |
 
@@ -546,8 +570,8 @@ git -C ~/.config/nvim checkout <commit> -- .
 
 - **GitHub 直连不稳定**时，需要自行配置 Git 代理或镜像。代理属于机器级设置，不写进仓库。
 - **LSP 服务器不走 Mason 自动安装**（多数 `mason = false`），需要系统里已有可执行文件。
-- **Copilot 行内补全默认关闭**，因为本地 minuet 已经占用幽灵文本；需要云端补全时改 `lua/plugins/copilot.lua` 的 `suggestion.enabled = true`。
-- **AI 功能依赖本机 Ollama**，没有服务时所有翻译/解释会明确报错，不会静默失败。
+- **Copilot 行内补全默认关闭**，因为 minuet 已经占用幽灵文本；需要云端补全时改 `lua/plugins/copilot.lua` 的 `suggestion.enabled = true`。
+- **AI 默认需要云端 Key**（OpenCode 等）；没有 Key 时会自动回退本机 Ollama，因此本机服务或模型缺失时，翻译/解释会明确报错，不会静默失败。
 - **配置仍在 Beta**，键位和插件选择可能变化。
 
 ---

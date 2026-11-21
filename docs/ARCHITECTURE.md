@@ -92,8 +92,10 @@
 | `options.lua` | 在 LazyVim 之后写回选项 |
 | `palette.lua` | Catppuccin 四套 flavor 的语义颜色表 |
 | `theme.lua` | `ColorScheme` 钩子，把语义色套到行号、补全、搜索、诊断等 |
-| `ai.lua` | 本机 Ollama 代码解释 / 审查 / 提问 / 状态 |
-| `translate.lua` | Ollama 流式翻译，带 sha256 缓存与串行队列 |
+| `ai.lua` | 代码解释 / 审查 / 提问 / 状态（云端，无 Key 时用本机） |
+| `llm.lua` | 统一流式客户端：OpenAI SSE / Ollama NDJSON |
+| `models.lua` | 多供应商 / 多模型注册表，`:CrowModel` 与一键切换 |
+| `translate.lua` | 流式翻译，带 sha256 缓存与串行队列 |
 | `doctor.lua` | `:Doctor` 环境体检 |
 | `guard.lua` | 启动期确保 which-key 已完成 `setup()` |
 
@@ -114,11 +116,12 @@ vim.g.crow_version = "v1.0.0"
 
 require("config.options")   -- 1
 require("config.neovide")   -- 2
-require("crow").setup()     -- 3
-require("crow.ai").setup()  -- 4
-require("config.keymaps")   -- 5
-require("config.autocmds")  -- 6
-require("config.lazy")      -- 7
+require("crow").setup()        -- 3
+require("crow.models").setup() -- 4
+require("crow.ai").setup()     -- 5
+require("config.keymaps")      -- 6
+require("config.autocmds")     -- 7
+require("config.lazy")         -- 8
 ```
 
 为什么必须是这个顺序：
@@ -132,8 +135,8 @@ require("config.lazy")      -- 7
 3. **`crow` 要早于键位**
    `config/keymaps.lua` 里直接 `require("crow")` 使用 `crow.notify`、`crow.toggle_terminal` 等函数。
 
-4. **`crow.ai` 要早于 lazy**
-   它在 `setup()` 里注册 `<leader>oa` 等键位和 `:CrowExplain` 命令。命令先注册，插件后加载，用户随时可用。
+4. **AI 模型注册表 / 分析命令要早于 lazy**
+   `crow.models` 注册 `<leader>om` / `<leader>oM` 与 `:CrowModel`；`crow.ai` 注册 `<leader>oa` 等键位和 `:CrowExplain` 命令。命令先注册，插件后加载，用户随时可用。
 
 5. **`keymaps` / `autocmds` 在 lazy 之前**
    保证全局键位和自动命令不被插件默认值覆盖；插件自己的 buffer-local 键位再在之后叠加。
@@ -272,7 +275,7 @@ attempt to call field 'setup' (a nil value)
 | `<leader>y` | Yank / 剪贴板历史 | 无 | `<leader>p` 已被「查找文件」占用 |
 | `<leader>n` | 文件树 | 通知历史 | 文件树更常用；通知历史用 `<leader>N` |
 | `<leader>D` | `:Doctor` | 无 | 环境体检入口 |
-| `<leader>o` | 本机 Ollama / AI | 无 | 与 Copilot 的 `<leader>a` 分开 |
+| `<leader>o` | AI（云端 / 本机）/ 会话 | 无 | 与 Copilot 的 `<leader>a` 分开 |
 
 ### 红队模板
 
@@ -395,24 +398,30 @@ nvim-notify（弹窗渲染、动画、历史）
 ## 10. AI 管线
 
 ```text
-                    ┌─────────────────────────────┐
-                    │ Ollama 127.0.0.1:11434      │
-                    └──────────────┬──────────────┘
-          ┌────────────────────────┼────────────────────────┐
-          ▼                        ▼                        ▼
-   minuet-ai.nvim           codecompanion.nvim          crow.ai
-   qwen2.5-coder:1.5b       qwen2.5-coder:1.5b          qwen2.5-coder:3b
-   行内幽灵补全              对话 / 内联改写              解释 / 审查 / 提问
-                                                           │
-                                                           ▼
-                                                    crow.translate
-                                                    （悬浮文档 / 补全文档翻译）
+                  lua/crow/models.lua（供应商 / 模型 / 角色 / Key）
+                                  │
+                     ┌────────────┴────────────┐
+                     ▼                         ▼
+             本机 Ollama 127.0.0.1       云端 OpenAI 兼容
+             qwen2.5-coder:1.5b          OpenCode / OpenRouter / 百炼 / …
+                     │                         │
+                     └────────────┬────────────┘
+                                  ▼
+                         lua/crow/llm.lua
+                  SSE（data: / [DONE]）+ NDJSON 统一解析
+                                  │
+        ┌─────────────────┬───────┴────────┬──────────────────┐
+        ▼                 ▼                ▼                  ▼
+ minuet-ai.nvim   codecompanion.nvim    crow.ai        crow.translate
+ 行内幽灵补全      对话 / 内联改写      解释 / 审查     悬浮 / 补全文档翻译
 ```
 
-- `minuet` 只在 InsertEnter 后触发，只作用于代码类 filetype；
-- `codecompanion` 用 `<leader>oc` / `ov` / `oe`；
+- `complete` 角色默认固定本机 Ollama，不跟随 `<leader>om` 全局切换；
+- `chat` / `inline` / `analyze` / `translate` 默认使用全局云端模型；
+- `codecompanion` 用 `<leader>oc` / `ov` / `oe` / `oR`；
 - `crow.ai` 用 `<leader>oa` / `or` / `oq` / `oi`；
-- `crow.translate` 被 `hover-translate.lua` 和 `blink.lua` 复用，带 sha256 缓存，只翻译「最新」请求，过期请求丢弃。
+- `crow.translate` 被 `hover-translate.lua` 和 `blink.lua` 复用，带 sha256 缓存，只翻译「最新」请求，过期请求丢弃；
+- 所有请求统一走 `crow.llm`，缺 Key / 网络错误 / 模型报错都会明确提示。
 
 详见 [AI.md](AI.md)。
 

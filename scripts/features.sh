@@ -52,10 +52,10 @@ fi
 # 格式： key|出厂默认|名称|说明
 # 必须与 lua/crow/features.lua 的 M.defaults 保持一致（脚本启动时会校验）。
 CATALOG=(
-  "minuet|true|行内幽灵补全|minuet-ai.nvim + qwen2.5-coder:1.5b，插入模式自动出建议"
+  "minuet|true|行内幽灵补全|minuet-ai.nvim，默认本机 qwen2.5-coder:1.5b，插入模式自动出建议"
   "codecompanion|true|对话 / 内联改写|:CodeCompanionChat 等命令，<leader>oc/ov/oe/oR"
   "crow_ai|true|解释 / 审查 / 提问|:CrowExplain 等命令，<leader>oa/or/oq/oi"
-  "translate|true|文档翻译|悬停文档与补全文档的中文流式翻译（依赖 Ollama）"
+  "translate|true|文档翻译|悬停文档与补全文档的中文流式翻译（云端优先，无 Key 用本机）"
   "copilot_chat|true|CopilotChat|GitHub Copilot 对话（需先 :Copilot auth）"
 )
 

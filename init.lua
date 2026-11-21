@@ -23,8 +23,12 @@ require("config.options")
 -- ─── Neovide GUI 适配（终端 nvim 自动跳过）──────────────────
 require("config.neovide")
 
--- ─── Easy-Nvim 公共层（自定义命令 / 主题增强 / 本机 AI）──────
+-- ─── Easy-Nvim 公共层（自定义命令 / 主题增强 / AI 模型注册表）──
 require("crow").setup()
+
+-- AI 模型注册表：:CrowModel、<leader>om / <leader>oM 在启动阶段就可用，
+-- 不依赖 codecompanion / minuet 是否已加载。
+require("crow.models").setup()
 
 -- crow.ai 由功能开关控制（scripts/features.sh），关掉后
 -- :CrowExplain / :CrowReview / :CrowAsk 与 <leader>oa/or/oq/oi 都不注册。

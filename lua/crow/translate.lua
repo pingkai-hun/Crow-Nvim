@@ -1,14 +1,18 @@
 -- ═══════════════════════════════════════════════════════════
--- crow.translate —— 本地 Ollama 流式翻译（NDJSON）
+-- crow.translate —— 云端 / 本机流式翻译
 -- ═══════════════════════════════════════════════════════════
 --
 -- 供补全文档（blink.cmp）和悬停文档（noice.nvim）共用：
 --
---   · 请求 Ollama 时开启 stream = true
---   · 逐行解析 NDJSON（每行一个 JSON 对象，取其中的 response 字段）
+--   · 通过 crow.llm 发起流式请求（OpenAI SSE / Ollama NDJSON）
+--   · 逐块累积，约 20fps 刷新一次 UI
 --   · 用 vim.schedule 把 UI 更新切回主线程
 --   · 同一段文本只翻译一次（sha256 缓存）
 --   · 串行队列：只翻译“当前最新”的请求，过期请求直接丢弃
+--
+-- 模型由 crow.models 决定：
+--   <leader>om 一键切换全局模型，<leader>oM 可单独给 translate 角色覆盖。
+--   兼容旧变量 vim.g.crow_translate_model（只覆盖模型 ID，供应商不变）。
 --
 -- 对外接口：
 --   M.cached(text)            -> 已缓存的译文或 nil
@@ -17,8 +21,8 @@
 
 local M = {}
 
-M.model = vim.g.crow_translate_model or "qwen2.5-coder:3b"
-M.url = vim.g.crow_translate_url or "http://127.0.0.1:11434/api/generate"
+local llm = require("crow.llm")
+
 M.max_chars = 8000
 
 local PROMPT = [[你是资深程序员兼技术译者。把下面的技术文档翻译成简体中文。
@@ -99,95 +103,49 @@ local function emit_chunk(entry, partial)
   end
 end
 
-local function handle_line(entry, line, chunks)
-  if line == "" then
-    return
-  end
-
-  local ok, obj = pcall(vim.json.decode, line)
-  if not ok or type(obj) ~= "table" or type(obj.response) ~= "string" then
-    return
-  end
-
-  table.insert(chunks, obj.response)
-
-  -- 约 20fps 刷新一次，避免每个 token 都重绘
-  local now = vim.uv.now()
-  if not entry.last_emit or now - entry.last_emit >= 50 then
-    entry.last_emit = now
-    emit_chunk(entry, trim_fence(table.concat(chunks)))
-  end
-end
-
 local function start_stream(entry)
-  local chunks = {}
-  -- 行缓冲：data[1] 可能接着上一次的残行，data 最后一项可能是半行
-  local lines = { "" }
+  local settled = false
 
-  local function feed(data)
-    if not data or #data == 0 then
+  local function settle(text)
+    if settled then
       return
     end
-    lines[#lines] = lines[#lines] .. data[1]
-    for i = 2, #data do
-      lines[#lines + 1] = data[i]
-    end
-    -- 最后一项可能是半行，留到下次或结束时再处理
-    while #lines > 1 do
-      handle_line(entry, table.remove(lines, 1), chunks)
-    end
+    settled = true
+    busy = false
+    local final = trim_fence(text or "")
+    finish(entry, final ~= "" and final or nil)
+    M._process()
   end
 
-  local payload = vim.json.encode({
-    model = M.model,
-    prompt = PROMPT .. entry.text,
-    stream = true,
-    options = {
-      temperature = 0,
-      num_predict = math.min(4096, math.max(512, #entry.text)),
-    },
-  })
-
-  local job = vim.fn.jobstart({
-    "curl",
-    "-sS",
-    "-N", -- 关闭 curl 缓冲，保证逐行到达
-    "-m",
-    "90",
-    M.url,
-    "-H",
-    "Content-Type: application/json",
-    "--data-binary",
-    "@-",
-  }, {
-    stdout_buffered = false,
-    on_stdout = function(_, data)
-      feed(data)
-    end,
-    on_stderr = function() end,
-    on_exit = function()
-      -- 处理最后一行（可能没有换行符）
-      if lines[1] ~= "" then
-        handle_line(entry, lines[1], chunks)
+  local job = llm.stream({
+    role = "translate",
+    model = vim.g.crow_translate_model or nil,
+    messages = { { role = "user", content = PROMPT .. entry.text } },
+    temperature = 0, -- 仅对 temperature_supported 的供应商生效
+    max_tokens = math.min(4096, math.max(512, #entry.text)),
+    timeout = 90,
+    on_chunk = function(total)
+      -- 约 20fps 刷新一次，避免每个 token 都重绘
+      local now = vim.uv.now()
+      if not entry.last_emit or now - entry.last_emit >= 50 then
+        entry.last_emit = now
+        emit_chunk(entry, trim_fence(total))
       end
-      vim.schedule(function()
-        busy = false
-        local final = trim_fence(table.concat(chunks))
-        finish(entry, final ~= "" and final or nil)
-        M._process()
-      end)
+    end,
+    on_done = function(total)
+      settle(total)
+    end,
+    on_error = function(_, partial)
+      -- 翻译失败时保持原文，不阻塞 UI；错误留给 :messages / 状态页排查
+      settle(partial)
     end,
   })
 
-  if job <= 0 then
-    busy = false
-    finish(entry, nil)
-    M._process()
+  if not job then
+    -- 缺少 Key 等错误：llm 已通过 on_error 回调，这里不重复处理。
+    -- 但 on_error 是异步调度的，busy 会在回调里释放。
     return
   end
-
-  vim.fn.chansend(job, payload)
-  vim.fn.chanclose(job, "stdin")
 end
 
 function M._process()

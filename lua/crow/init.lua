@@ -241,7 +241,7 @@ function M.setup()
     local function add_group(attempt)
       local ok = pcall(function()
         require("which-key").add({
-          { "<leader>o", group = "Ollama / AI（本机模型）", mode = "n" },
+          { "<leader>o", group = "AI（云端 / 本机）", mode = "n" },
         })
       end)
       if not ok and attempt < 30 then
