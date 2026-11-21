@@ -332,9 +332,14 @@ local function save_state()
   --   · active   期望 {"provider":..., "model":...}
   --   · overrides 期望 {"chat":{...}, ...}
   -- 用 vim.empty_dict() 保证写成 `{}`，避免读回时变成数组。
+  -- 注意：state.active 可能是 nil（还没选过全局模型），
+  -- 直接 next(state.active) 会抛 "bad argument #1 to 'next'"。
+  local function nonempty(t)
+    return type(t) == "table" and next(t) ~= nil
+  end
   local data = {
-    active = next(state.active) ~= nil and state.active or vim.empty_dict(),
-    overrides = next(state.overrides) ~= nil and state.overrides or vim.empty_dict(),
+    active = nonempty(state.active) and state.active or vim.empty_dict(),
+    overrides = nonempty(state.overrides) and state.overrides or vim.empty_dict(),
   }
   local ok, json = pcall(vim.json.encode, data)
   if ok then

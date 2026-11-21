@@ -44,6 +44,71 @@ local function error_text(obj)
   return tostring(err)
 end
 
+-- ─── 错误分类与自动回退 ────────────────────────────────────
+-- 云端供应商的「额度用尽 / Key 无效 / 限流」都属于「换条路就能继续」的错误，
+-- 不值得让整个功能失败。这里把它们识别出来，自动回退到本机 Ollama，
+-- 用户至少还能继续解释 / 审查代码。
+local CLASSIFY = {
+  quota = {
+    "free usage limit",
+    "usage limit",
+    "quota",
+    "insufficient",
+    "out of credit",
+    "billing",
+    "exceeded your current",
+  },
+  auth = { "unauthorized", "invalid api key", "invalid_api_key", "401", "authentication" },
+  ratelimit = { "rate limit", "rate_limit", "too many requests", "429" },
+  -- 云端不可达（断网、代理挂了、DNS 失败）同样可以改用本机
+  network = {
+    "curl 退出码",
+    "could not resolve",
+    "connection refused",
+    "connection reset",
+    "operation timed out",
+    "timed out",
+    "ssl connect error",
+    "failed to connect",
+  },
+}
+
+local CLASSIFY_LABEL = {
+  quota = "额度已用尽",
+  auth = "Key 无效或未授权",
+  ratelimit = "请求过于频繁",
+  network = "云端不可达",
+}
+
+---判断错误属于哪一类（quota / auth / ratelimit / nil）
+---@param err string?
+---@return string?
+local function classify_error(err)
+  if type(err) ~= "string" then
+    return nil
+  end
+  local s = err:lower()
+  for kind, pats in pairs(CLASSIFY) do
+    for _, pat in ipairs(pats) do
+      if s:find(pat, 1, true) then
+        return kind
+      end
+    end
+  end
+  return nil
+end
+
+-- 同一供应商 + 模型只在一次会话里提示一次，避免刷屏
+local notified = {}
+
+local function notify_fallback_once(key, msg)
+  if notified[key] then
+    return
+  end
+  notified[key] = true
+  vim.notify(msg, vim.log.levels.WARN, { title = "Crow AI 已回退" })
+end
+
 ---构造请求体
 ---@param sel table
 ---@param messages table[]
@@ -108,6 +173,34 @@ function M.stream(opts)
     return nil, sel.error
   end
   if sel.missing_key then
+    -- 缺 Key 属于「云端不可用」的一种：能回退就先回退，别让功能直接死掉。
+    if opts.fallback ~= false and vim.g.crow_ai_fallback ~= false and models.is_local("ollama") then
+      local notice = string.format("%s 缺少 API Key，已自动改用本机 Ollama", sel.provider_label)
+      notify_fallback_once(
+        "missing\0" .. sel.provider_name,
+        string.format(
+          "%s。设置 %s 或写入 lua/crow/secrets.lua 后，可用 :CrowModel %s 切回云端。",
+          notice,
+          sel.env or "对应环境变量",
+          sel.role
+        )
+      )
+      if opts.on_notice then
+        pcall(opts.on_notice, notice)
+      end
+      local retry = {}
+      for k, v in pairs(opts) do
+        retry[k] = v
+      end
+      retry.provider = "ollama"
+      retry.model = nil
+      retry.fallback = false -- 只回退一层
+      local ok2, job2 = pcall(M.stream, retry)
+      if ok2 and type(job2) == "number" and job2 > 0 then
+        return job2
+      end
+    end
+
     local msg = string.format(
       "缺少 API Key：请设置 %s，或写入 lua/crow/secrets.lua（当前供应商：%s）",
       sel.env or "对应环境变量",
@@ -272,8 +365,55 @@ function M.stream(opts)
 
     vim.schedule(function()
       if err then
+        -- ── 自动回退 ──────────────────────────────────────────
+        -- 条件：调用方允许回退、当前是云端、还没有任何正文输出
+        --      （有正文时回退会把两段内容拼在一起）、错误可归类、
+        --      且本机 Ollama 可用。
+        local kind = classify_error(err)
+        local can_fallback = kind ~= nil
+          and sel.protocol ~= "ollama"
+          and total == ""
+          and opts.fallback ~= false
+          and vim.g.crow_ai_fallback ~= false
+          and models.is_local("ollama")
+
+        if can_fallback then
+          local label = string.format("%s / %s", sel.provider_label, sel.model)
+          local notice = string.format(
+            "%s %s，已自动改用本机 Ollama",
+            label,
+            CLASSIFY_LABEL[kind] or "调用失败"
+          )
+          notify_fallback_once(sel.provider_name .. "\0" .. sel.model, notice .. "。\n" .. "配置好云端额度后，可用 :CrowModel " .. sel.role .. " 切回去。")
+          if opts.on_notice then
+            pcall(opts.on_notice, notice)
+          end
+
+          local retry = {}
+          for k, v in pairs(opts) do
+            retry[k] = v
+          end
+          retry.provider = "ollama"
+          retry.model = nil -- 交给 resolve 按角色取本机默认模型
+          retry.fallback = false -- 只回退一层，避免递归
+          pcall(M.stream, retry)
+          return
+        end
+
+        -- 无法回退：把错误补上可操作的提示
+        -- 保持单行：调用方（如 crow.ai）会把这段塞进 Markdown 斜体里，
+        -- 换行会破坏渲染。
+        local msg = err
+        if kind then
+          msg = string.format(
+            "%s · %s；可用 :CrowModel %s 换一个供应商 / 模型，或改用本机 Ollama。",
+            err,
+            CLASSIFY_LABEL[kind] or "调用失败",
+            sel.role
+          )
+        end
         if opts.on_error then
-          pcall(opts.on_error, err, total)
+          pcall(opts.on_error, msg, total)
         end
       elseif opts.on_done then
         pcall(opts.on_done, total, { selection = sel })
@@ -335,6 +475,13 @@ function M.stream(opts)
   active[job] = { cancelled = false }
   vim.fn.chansend(job, payload)
   vim.fn.chanclose(job, "stdin")
+
+  -- 通知调用方「当前真正在跑的是哪个 job」。
+  -- 自动回退会再起一个 job，调用方（如 crow.ai 的 :CrowAiStop）
+  -- 只有拿到新 id 才能中断它。
+  if opts.on_job then
+    pcall(opts.on_job, job)
+  end
 
   return job
 end

@@ -611,6 +611,45 @@ curl -sS https://opencode.ai/inference/openai/v1/models \
   -H "Authorization: Bearer $OPENCODE_API_KEY" | head
 ```
 
+### 提示「Free usage limit reached」/ 额度已用尽
+
+这是**供应商侧的免费额度用完**，不是配置错误。
+
+从 v1.0.0 起已经做了自动回退：云端返回「额度用尽 / Key 无效 / 限流 / 不可达」，
+或者**根本没配 Key** 时，会自动改用本机 Ollama，功能不会中断。你会看到一条通知：
+
+```
+Crow AI 已回退
+OpenCode / deepseek-v4.1-flash-free 额度已用尽，已自动改用本机 Ollama。
+配置好云端额度后，可用 :CrowModel analyze 切回去。
+```
+
+想彻底不再走这条云端线路，选一个别的供应商：
+
+```vim
+:CrowModel analyze        " 只换「解释 / 审查 / 提问」用哪个模型
+```
+
+如果连回退也不想要（例如本机没装 Ollama，希望直接报错而不是等一次超时）：
+
+```lua
+vim.g.crow_ai_fallback = false
+```
+
+> 注意：OpenCode 的免费模型有每日/每月上限，重置后可以再用。
+> 付费方案见 <https://opencode.ai/go>。
+
+### 回退没有生效
+
+按顺序排查：
+
+1. 本机 Ollama 是否在跑：`curl -s http://127.0.0.1:11434/api/tags | head -c 100`
+2. 错误是否属于可回退类型：额度、Key、限流、网络。其它错误（例如模型 ID 不存在）
+   不会回退，会直接报错 —— 因为换个模型也解决不了。
+3. 是否已经输出了一部分正文：只要有一个字输出就不再回退，
+   避免把两段内容拼在一起。
+4. `vim.g.crow_ai_fallback` 是否被设成了 `false`。
+
 ### 补全不出现
 
 - 是否在代码类 filetype；

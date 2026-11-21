@@ -272,6 +272,17 @@ function M.request(task, code, title, transform)
   local started = vim.uv.now()
   local header = string.format("_%s / %s · 分析中…_", sel.provider_label, sel.model)
 
+  -- 云端失败并自动回退到本机时，llm 会回调这里：
+  -- 把 sel / header 换成实际使用的本机模型，避免结尾还显示云端名字。
+  local function on_notice(msg)
+    local local_sel = models.resolve("analyze", "ollama", nil)
+    if local_sel and not local_sel.error then
+      sel = local_sel
+    end
+    header = string.format("_%s · 分析中…_", msg)
+    render("", header)
+  end
+
   local function on_error(msg, partial)
     state.job = nil
     local body = partial or ""
@@ -306,6 +317,12 @@ function M.request(task, code, title, transform)
     max_tokens = 1024, -- 单次回答上限，防止拖时间
     num_ctx = 8192, -- 仅本机 Ollama 使用
     timeout = 180,
+    -- 回退会换一个 job，靠这个回调把 state.job 同步成正在跑的那个，
+    -- 否则 :CrowAiStop 停不掉回退后的请求。
+    on_job = function(job)
+      state.job = job
+    end,
+    on_notice = on_notice,
     on_chunk = function(total)
       render(total, header)
     end,

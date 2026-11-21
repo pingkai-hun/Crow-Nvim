@@ -151,6 +151,39 @@ vim.g.crow_api_keys = {
 - 给某个角色单独选模型会写入 override，其余角色仍跟随全局；
 - 想恢复自动策略：删除 `stdpath("state")/crow/models.json` 中对应项，或重新选一次全局模型。
 
+### 云端失败自动回退
+
+云端供应商出问题时，不必手动切回本机 —— `llm.stream` 会把下面几类错误识别为
+「换条路就能继续」，自动改用本机 Ollama，并在通知里说明：
+
+| 类型 | 典型报错 |
+|---|---|
+| 额度用尽 | `Free usage limit reached` / `quota exceeded` / `insufficient credit` |
+| Key 无效 | `401 Unauthorized` / `invalid api key` |
+| 限流 | `429 Too Many Requests` / `rate limit` |
+| 云端不可达 | `curl 退出码 7` / `connection refused` / DNS / SSL 失败 |
+| 没配 Key | 本地直接判定，不会发出请求 |
+
+触发条件（全部满足才会回退）：
+
+1. 当前用的是云端供应商（`protocol ~= "ollama"`）；
+2. 还没有输出任何正文 —— 已输出正文时回退会把两段内容拼在一起；
+3. 错误属于上表任一类；
+4. 本机 Ollama 可用；
+5. 没有把 `vim.g.crow_ai_fallback` 设为 `false`。
+
+回退只发生一层，不会递归。回退后浮窗底部显示的是**真正使用的**本机模型，
+不是原来选的云端模型。
+
+想禁用回退（例如本机没装 Ollama，宁可立刻报错）：
+
+```lua
+vim.g.crow_ai_fallback = false
+```
+
+不在这张表里的错误（如模型 ID 不存在、请求体格式错误）**不会**回退——
+换一个模型也解决不了，直接报错更有助于排查。
+
 ### 全局切换不会影响补全
 
 这是刻意的：补全对延迟最敏感，默认固定本机 `qwen2.5-coder:1.5b`。
