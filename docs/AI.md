@@ -10,7 +10,7 @@
 ## 目录
 
 - [1. 总览](#1-总览)
-- [2. 快速开始：配置云端 Key](#2-快速开始配置云端-key)
+- [2. 快速开始：菜单配置 / 环境变量](#2-快速开始菜单配置--环境变量)
 - [3. 模型注册表与切换](#3-模型注册表与切换)
 - [4. 行内补全：minuet-ai](#4-行内补全minuet-ai)
 - [5. 对话与改写：CodeCompanion](#5-对话与改写codecompanion)
@@ -43,7 +43,8 @@
 
 - **补全要快**：始终用本机小模型，稳定低延迟，且不消耗云端额度；
 - **质量任务上云**：解释、审查、翻译使用云端大模型；
-- **一键切换**：`<leader>om` 循环可用模型，`<leader>oM` 打开面板；
+- **一键切换**：`<leader>om` 循环推荐模型，`<leader>oM` 打开面板；
+- **菜单配置**：`<leader>oK` / `:CrowSetup` 一步完成供应商、Key、模型的选择；
 - **分层回退**：无 Key → 本机；本机也没起 → 明确报错，不静默失败。
 
 所有 AI 请求都经过 `lua/crow/llm.lua`，统一处理：
@@ -54,24 +55,51 @@
 
 ---
 
-## 2. 快速开始：配置云端 Key
+## 2. 快速开始：菜单配置 / 环境变量
 
-默认供应商是 **OpenCode 聚合平台**。任选一种方式提供 Key，优先级从高到低：
+默认供应商是 **OpenCode 聚合平台**。Key 的读取顺序（先命中先用）：
 
 1. `vim.g.crow_api_keys`
-2. 环境变量
-3. `lua/crow/secrets.lua`（已 gitignore）
-4. 供应商配置里的 `api_key`（只用于本地服务）
+2. 菜单向导保存的本机密钥库（`stdpath("state")/crow/keys.json`，权限 0600）
+3. 环境变量
+4. `lua/crow/secrets.lua`（已 gitignore）
+5. 供应商配置里的 `api_key`（只用于本地服务）
 
-### 方式 A：环境变量（推荐）
+### 方式 A：菜单向导（推荐）
+
+在 Neovim 里按：
+
+```text
+<leader>oK
+```
+
+或执行：
+
+```vim
+:CrowSetup
+```
+
+然后按提示操作：
+
+1. **选择供应商**：OpenCode、Agnes AI、OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动、本机 Ollama；
+2. **输入 Key**：输入时不回显；如果已有 Key，可以选择继续使用、输入新的、或清除本机保存的 Key；
+3. **选择模型**：推荐模型带 `★`，也可以选「自定义模型 ID…」。
+
+完成后会立即把所选模型设为全局模型，并写入状态文件，重启后仍然有效。
+
+- Key 保存在 Neovim 的 state 目录，**不会写进 dotfiles**；
+- 本机 Ollama 不需要 Key，向导会直接跳到选模型；
+- 之后想换模型：`<leader>om`（循环）或 `<leader>oM`（面板）。
+
+### 方式 B：环境变量
 
 ```bash
 export OPENCODE_API_KEY="sk-..."
 ```
 
-放进 `~/.zshrc` / `~/.bashrc` 后重启终端。Neovide 从桌面启动时可能读不到 shell 配置，见下面的方式 B。
+放进 `~/.zshrc` / `~/.bashrc` 后重启终端。Neovide 从桌面启动时可能读不到 shell 配置，可以用菜单向导或 `secrets.lua`。
 
-### 方式 B：secrets.lua
+### 方式 C：secrets.lua
 
 ```bash
 cd ~/.config/nvim
@@ -91,7 +119,7 @@ return {
 
 该文件已在 `.gitignore` 中，不会被提交。
 
-### 方式 C：启动时写 `vim.g`
+### 方式 D：启动时写 `vim.g`
 
 适合从配置里注入，或临时测试：
 
@@ -107,7 +135,7 @@ vim.g.crow_api_keys = {
 :CrowAiStats
 ```
 
-会按角色列出供应商、模型、是否有 Key，并探测本机 Ollama 是否在线。
+会按角色列出供应商、模型、Key 来源，并探测本机 Ollama 是否在线。
 
 ---
 
@@ -136,10 +164,12 @@ vim.g.crow_api_keys = {
 
 | 操作 | 作用 |
 |---|---|
+| `<leader>oK` / `:CrowSetup` | 配置向导：选供应商 → 输入 Key → 选模型 |
 | `<leader>om` | 在**推荐模型**间循环切换（由每个供应商的 `cycle` 列表决定；只有 OpenCode + 本机时默认 9 项） |
 | `<leader>oM` | 打开模型面板 |
 | `:CrowModel next` | 同 `<leader>om` |
 | `:CrowModel` / `:CrowModel global` | 打开全局模型面板 |
+| `:CrowModel setup` | 同 `:CrowSetup` |
 | `:CrowModel analyze` | 只给某个角色选模型 |
 | `:CrowModel complete` | 给补全单独选模型（需重启） |
 
@@ -399,6 +429,7 @@ scripts/features.sh reset     # 恢复出厂默认
 | 供应商 | 环境变量 | 默认地址 |
 |---|---|---|
 | OpenCode（默认） | `OPENCODE_API_KEY` | `https://opencode.ai/inference/openai/v1` |
+| Agnes AI | `AGNES_API_KEY` | `https://api.agnes-ai.cn/v1` |
 | OpenRouter | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
 | 阿里云百炼 | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | DeepSeek | `DEEPSEEK_API_KEY` | `https://api.deepseek.com` |
@@ -409,6 +440,8 @@ scripts/features.sh reset     # 恢复出厂默认
 
 不同供应商的模型 ID 不一样；面板里显示的是配置内置的候选，新增模型可以用「自定义模型 ID」。
 
+> **Agnes AI 线路**：默认走国内站 `https://api.agnes-ai.cn/v1`。如果该线路不可用，可改用国际站主线路 `https://apihub.agnes-ai.com/v1` 或国际站备用线路 `https://apihub.agnes-ai.cn/v1`；认证、额度、限流错误不要靠换线路解决。
+>
 > OpenCode 的模型清单与价格会更新，以 <https://opencode.ai/docs/zen/> 为准。
 
 ---
@@ -531,6 +564,7 @@ return {
 建议：
 
 - 涉及敏感代码时，用 `:CrowModel` 切到本机 Ollama，或关闭对应功能；
+- 菜单向导输入的 Key 只保存在本机 state 目录（`stdpath("state")/crow/keys.json`，权限 0600），不会写进仓库；
 - 不要把真实 Key、公司内网地址、私有模型地址提交到仓库；
 - `secrets.lua`、`models_user.lua` 已加入 `.gitignore`。
 
@@ -539,6 +573,8 @@ return {
 ## 13. 排错
 
 ### `:CrowAiStats` 显示缺 Key
+
+按 `<leader>oK`（或 `:CrowSetup`）走一遍配置向导，输入对应供应商的 Key 并选择模型；也可以：
 
 ```vim
 :CrowModel global

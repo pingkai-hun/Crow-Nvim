@@ -155,7 +155,8 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
   - `codecompanion.nvim` 对话 / 内联改写 / 结构化审查（默认 OpenCode 聚合平台）；
   - `crow.ai` 代码解释 / 审查 / 提问（云端）；
   - LSP 悬浮文档与补全文档自动翻译成中文（云端）；
-  - `<leader>om` 一键切换全局模型，`<leader>oM` 打开选择面板；也支持 OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动；
+  - `:CrowSetup` / `<leader>oK` 菜单式配置：选供应商 → 输入 Key → 选模型；
+  - `<leader>om` 一键切换全局模型，`<leader>oM` 打开选择面板；也支持 Agnes AI、OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动；
   - 没有云端 Key 时自动回退本机 Ollama，开箱可用。
 - **GitHub Copilot**（可选，需登录）：CopilotChat 对话；行内补全默认关闭，避免和 minuet 抢幽灵文本。
 
@@ -294,7 +295,8 @@ ollama serve
 ollama pull qwen2.5-coder:1.5b
 ollama pull qwen2.5-coder:3b
 
-# 云端模型（任选其一；也可直接 export 环境变量）
+# 云端模型：进入 Neovim 按 <leader>oK，按菜单提示输入 Key 并选模型
+# 也可以手动配置（任选其一）
 cp lua/crow/secrets.example.lua lua/crow/secrets.lua
 # 编辑 secrets.lua，填入 opencode = "sk-..."
 ```
@@ -409,7 +411,8 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 | `:CrowExplain` | AI 解释当前函数 / 选区 |
 | `:CrowReview` | AI 审查代码 |
 | `:CrowAsk <问题>` | 带上下文向 AI 提问 |
-| `:CrowModel [next\|global\|chat\|inline\|analyze\|translate\|complete]` | 切换 / 选择 AI 模型 |
+| `:CrowSetup` | 菜单式配置：选供应商 → 输入 API Key → 选模型 |
+| `:CrowModel [next\|setup\|global\|chat\|inline\|analyze\|translate\|complete]` | 切换 / 选择 AI 模型 |
 | `:CrowAiStats` | AI 模型、供应商与 Key 状态 |
 | `:CrowAiStop` | 中断 AI 请求 |
 | `:CodeCompanionChat` | 打开 CodeCompanion 对话 |
@@ -443,6 +446,7 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 | `<F7>` | 浮动终端 |
 | `<F8>` | 代码大纲 |
 | `<leader>cv` / `<leader>cV` / `<leader>cvr` | 选择 venv / 取消 / 重启 Python LSP |
+| `<leader>oK` / `:CrowSetup` | AI 配置向导：输入 Key、选择模型 |
 | `<leader>om` / `<leader>oM` | AI 模型一键切换 / 选择面板 |
 | `<leader>oa` / `<leader>or` / `<leader>oq` / `<leader>oi` | AI 解释 / 审查 / 提问 / 状态 |
 | `<leader>nn` / `<leader>nd` | 通知历史 / 关闭通知 |
@@ -488,9 +492,9 @@ CrowNvim 对 Python 做了专门处理：
 | 补全文档翻译 | `crow.translate` + `blink.cmp` | 全局模型 | 自动 |
 | Copilot Chat | `CopilotChat.nvim` | GitHub Copilot | `<leader>aa` 等 |
 
-模型由 `lua/crow/models.lua` 统一管理：`<leader>om` 在可用模型间循环，`<leader>oM` 打开面板，也可以 `:CrowModel analyze` 只给某个角色换模型。行内补全默认固定走本机 Ollama，不跟随全局切换。
+模型由 `lua/crow/models.lua` 统一管理：第一次使用直接按 `<leader>oK`（或 `:CrowSetup`），按提示选择供应商、输入 Key、选择模型即可。之后用 `<leader>om` 在推荐模型间循环，`<leader>oM` 打开完整面板，也可以 `:CrowModel analyze` 只给某个角色换模型。行内补全默认固定走本机 Ollama，不跟随全局切换。
 
-云端 Key 的读取顺序：`vim.g.crow_api_keys` → 环境变量 → `lua/crow/secrets.lua`。没有 Key 时自动回退本机 Ollama；`:CrowAiStats` 可以查看每个角色的供应商、模型和缺 Key 状态。
+云端 Key 的读取顺序：`vim.g.crow_api_keys` → 菜单保存的本机密钥库 → 环境变量 → `lua/crow/secrets.lua`。菜单输入的 Key 保存在 Neovim 的 state 目录（权限 0600），不会写进 dotfiles。没有 Key 时自动回退本机 Ollama；`:CrowAiStats` 可以查看每个角色的供应商、模型和 Key 来源。
 
 详见 **[docs/AI.md](docs/AI.md)**。
 

@@ -427,20 +427,24 @@ function M.stats()
         online and "在线" or "未响应")
     elseif models.key(name) then
       any = true
-      out[#out + 1] = string.format("  ● %-18s %s", p.label or name, p.env or "")
+      out[#out + 1] = string.format(
+        "  ● %-18s %s",
+        p.label or name,
+        models.key_source(name) or "已配置"
+      )
     end
   end
   if not any then
-    out[#out + 1] = "  （无云端 Key：设置 OPENCODE_API_KEY 或 lua/crow/secrets.lua）"
+    out[#out + 1] = "  （无云端 Key：按 <leader>oK 配置）"
   end
 
   out[#out + 1] = ""
-  out[#out + 1] = "快捷键: <leader>om 切换模型 · <leader>oM 选择面板"
+  out[#out + 1] = "快捷键: <leader>oK 配置 Key / 模型 · <leader>om 切换 · <leader>oM 面板"
   out[#out + 1] = "        <leader>oa 解释 · <leader>or 审查 · <leader>oq 提问"
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, out)
-  local width = 60
+  local width = 72
   local height = #out + 2
   vim.api.nvim_open_win(buf, true, {
     relative = "editor",

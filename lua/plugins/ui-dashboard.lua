@@ -100,13 +100,18 @@ local function register_ai_section()
 
     if chat.missing_key then
       vim.list_extend(parts, {
-        { " · 缺 " .. (chat.env or "API Key"), hl = "DiagnosticWarn" },
+        { " · 缺 Key · ", hl = "DiagnosticWarn" },
+        { "<leader>oK", hl = "special" },
+        { " 配置", hl = "footer" },
       })
     else
       vim.list_extend(parts, {
         { " · ", hl = "footer" },
         { "<leader>om", hl = "special" },
         { " 切换", hl = "footer" },
+        { " · ", hl = "footer" },
+        { "<leader>oK", hl = "special" },
+        { " 配置", hl = "footer" },
       })
     end
 

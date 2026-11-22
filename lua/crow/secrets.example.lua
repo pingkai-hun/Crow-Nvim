@@ -7,7 +7,14 @@
 --   2. 填入你的 Key（键名就是 models.lua 里的 provider 名）
 --   3. 重启 Neovim，或 :CrowAiStats 确认已识别
 --
--- 也可以不写文件，直接设环境变量（优先级：环境变量 > 本文件）：
+-- 更省事：在 Neovim 里按 <leader>oK（或 :CrowSetup），
+-- 按菜单选择供应商、输入 Key、选择模型。菜单输入的 Key 保存在
+-- Neovim state 目录（权限 0600），不需要编辑本文件。
+--
+-- Key 读取顺序（先命中先用）：
+--   vim.g.crow_api_keys > 菜单保存的本机密钥库 > 环境变量 > 本文件
+--
+-- 也可以不写文件，直接设环境变量：
 --   export OPENCODE_API_KEY="sk-..."
 --   export OPENROUTER_API_KEY="sk-or-..."
 --   export DASHSCOPE_API_KEY="sk-..."
@@ -17,6 +24,7 @@
 
 return {
   opencode = "",
+  agnes = "",
   -- openrouter = "sk-or-...",
   -- dashscope = "sk-...",
   -- deepseek = "sk-...",

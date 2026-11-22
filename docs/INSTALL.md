@@ -340,6 +340,10 @@ AI 默认使用云端模型（OpenCode 聚合平台），行内补全默认使�
 
 ### 云端 Key（推荐）
 
+进入 Neovim 按 `<leader>oK`（或 `:CrowSetup`），按菜单提示选择供应商、输入 Key、选择模型即可。Key 保存在本机 state 目录，不会写进 dotfiles。
+
+也可以手动写入 `secrets.lua`：
+
 ```bash
 cp lua/crow/secrets.example.lua lua/crow/secrets.lua
 # 编辑 secrets.lua，填入 opencode = "sk-..."

@@ -571,8 +571,9 @@ Neovim 只把背景设为 `NONE`。
 按优先级检查：
 
 1. `vim.g.crow_api_keys`；
-2. 环境变量（`echo $OPENCODE_API_KEY`）；
-3. `lua/crow/secrets.lua` 是否存在且键名正确。
+2. 菜单向导保存的本机密钥库（按 `<leader>oK` / `:CrowSetup` 重新输入）；
+3. 环境变量（`echo $OPENCODE_API_KEY`）；
+4. `lua/crow/secrets.lua` 是否存在且键名正确。
 
 也可以直接切回本机：
 

@@ -20,9 +20,14 @@
 --
 -- API Key 读取顺序（先命中先用）：
 --   1. vim.g.crow_api_keys = { opencode = "sk-..." }
---   2. 环境变量（见 provider.env，例如 OPENCODE_API_KEY）
---   3. lua/crow/secrets.lua（已 gitignore）
---   4. provider.api_key（仅本地服务）
+--   2. <leader>oK / :CrowSetup 保存的本机密钥库（stdpath("state")/crow/keys.json）
+--   3. 环境变量（见 provider.env，例如 OPENCODE_API_KEY）
+--   4. lua/crow/secrets.lua（已 gitignore）
+--   5. provider.api_key（仅本地服务）
+--
+-- 菜单式配置：
+--   <leader>oK 或 :CrowSetup —— 选供应商 → 输入 Key → 选模型
+--   输入 Key 时不会回显，保存到本机 state 目录（权限 0600），不会写进 dotfiles。
 --
 -- 自定义供应商 / 模型：
 --   复制 lua/crow/models_user.example.lua 为 lua/crow/models_user.lua，
@@ -91,6 +96,32 @@ M.providers = {
       { id = "nemotron-3.5-lightning-free", name = "Nemotron 3.5 Lightning (free)" },
       { id = "big-pickle", name = "Big Pickle (free)" },
       { id = "iceman-free", name = "Iceman (free)" },
+    },
+  },
+
+  -- Agnes AI：OpenAI 兼容；国内站主线路
+  -- 国际站主线路：https://apihub.agnes-ai.com/v1
+  -- 国际站备用线路：https://apihub.agnes-ai.cn/v1
+  agnes = {
+    label = "Agnes AI",
+    protocol = "openai",
+    base_url = "https://api.agnes-ai.cn/v1",
+    env = "AGNES_API_KEY",
+    requires_key = true,
+    defaults = {
+      chat = "agnes-3.0-flash",
+      inline = "agnes-3.0-flash",
+      analyze = "agnes-3.0-flash",
+      translate = "agnes-3.0-flash",
+    },
+    cycle = { "agnes-3.0-flash", "agnes-2.5-flash", "agnes-2.5-pro", "agnes-3.0-pro" },
+    models = {
+      { id = "agnes-3.0-flash", name = "Agnes 3.0 Flash", ctx = 524288 },
+      { id = "agnes-3.0-pro", name = "Agnes 3.0 Pro", ctx = 1048576 },
+      { id = "agnes-2.5-flash", name = "Agnes 2.5 Flash", ctx = 524288 },
+      { id = "agnes-2.5-pro", name = "Agnes 2.5 Pro", ctx = 1048576 },
+      { id = "agnes-2.5-pro-theta", name = "Agnes 2.5 Pro Theta", ctx = 1048576 },
+      { id = "agnes-2.0-flash", name = "Agnes 2.0 Flash (legacy)" },
     },
   },
 
@@ -263,7 +294,7 @@ M.providers = {
 }
 
 -- 自动挑选 / 面板展示顺序。OpenCode 放第一位。
-M.order = { "opencode", "openrouter", "dashscope", "deepseek", "kimi", "zhipu", "siliconflow", "ollama" }
+M.order = { "opencode", "agnes", "openrouter", "dashscope", "deepseek", "kimi", "zhipu", "siliconflow", "ollama" }
 
 -- 角色：global 只是展示用，实际解析时不会作为 key
 M.roles = { "chat", "inline", "analyze", "translate", "complete" }
@@ -355,6 +386,102 @@ local function key_from_secrets(name)
   return secrets[name]
 end
 
+-- ─── 本机密钥库（菜单输入）──────────────────────────────────
+-- 不写进 dotfiles：放在 stdpath("state")/crow/keys.json，权限 0600。
+-- 这样在 Neovide / 终端里输入一次即可，重启后仍然有效。
+local keys = {}
+
+local function keys_file()
+  return vim.fn.stdpath("state") .. "/crow/keys.json"
+end
+
+local function load_keys()
+  local path = keys_file()
+  if vim.fn.filereadable(path) == 0 then
+    return
+  end
+  local ok, text = pcall(vim.fn.readfile, path)
+  if not ok or type(text) ~= "table" then
+    return
+  end
+  local ok2, data = pcall(vim.json.decode, table.concat(text, "\n"))
+  if not ok2 or type(data) ~= "table" then
+    return
+  end
+  for name, value in pairs(data) do
+    if type(name) == "string" and type(value) == "string" and value ~= "" then
+      keys[name] = value
+    end
+  end
+end
+
+local function save_keys()
+  local dir = vim.fn.stdpath("state") .. "/crow"
+  pcall(vim.fn.mkdir, dir, "p")
+  local data = next(keys) and keys or vim.empty_dict()
+  local ok, json = pcall(vim.json.encode, data)
+  if not ok then
+    return
+  end
+  pcall(vim.fn.writefile, { json }, keys_file())
+  pcall(vim.uv.fs_chmod, keys_file(), 384) -- 0600
+end
+
+---保存 / 清除通过菜单输入的 Key
+---@param name string 供应商名
+---@param key string|nil 留空表示清除本机密钥库中的这一项
+---@return boolean, string?
+function M.set_key(name, key)
+  if not M.providers[name] then
+    return false, "未知供应商: " .. tostring(name)
+  end
+  key = vim.trim(key or ""):gsub("^[Bb]earer%s+", "")
+  if key == "" then
+    keys[name] = nil
+  else
+    if key:find("%s") then
+      return false, "Key 不能包含空格或换行"
+    end
+    keys[name] = key
+  end
+  save_keys()
+  return true
+end
+
+---本机密钥库中的 Key（不含环境变量 / secrets.lua）
+---@param name string
+---@return string|nil
+function M.saved_key(name)
+  return keys[name]
+end
+
+---Key 的来源，供设置面板 / :CrowAiStats 展示
+---@param name string
+---@return string|nil
+function M.key_source(name)
+  local p = M.providers[name]
+  if not p then
+    return nil
+  end
+  local globals = vim.g.crow_api_keys
+  if type(globals) == "table" and type(globals[name]) == "string" and globals[name] ~= "" then
+    return "vim.g"
+  end
+  if keys[name] then
+    return "本机密钥库"
+  end
+  if p.env and vim.env[p.env] and vim.env[p.env] ~= "" then
+    return "环境变量 " .. p.env
+  end
+  if key_from_secrets(name) then
+    return "secrets.lua"
+  end
+  if type(p.api_key) == "string" and p.api_key ~= "" then
+    return "供应商配置"
+  end
+  return nil
+end
+
 -- ─── 基础查询 ──────────────────────────────────────────────
 ---@param name string
 ---@return table|nil
@@ -372,6 +499,9 @@ function M.key(name)
 
   local globals = vim.g.crow_api_keys
   local k = type(globals) == "table" and globals[name] or nil
+  if not k then
+    k = keys[name]
+  end
   if not k and p.env and vim.env[p.env] and vim.env[p.env] ~= "" then
     k = vim.env[p.env]
   end
@@ -798,6 +928,214 @@ function M.pick_role(role)
   M.pick(role)
 end
 
+-- ─── 首次配置向导：供应商 → Key → 模型 ─────────────────────
+local function provider_label(name)
+  local p = M.providers[name]
+  if not p then
+    return name
+  end
+  local src = M.key_source(name)
+  local status
+  if p.requires_key == false or p.protocol == "ollama" then
+    status = "本机 / 无需 Key"
+  elseif src then
+    status = "✓ " .. src
+  else
+    status = "✗ 未配置 Key"
+  end
+  return string.format("%s  ·  %s", p.label or name, status)
+end
+
+---选择供应商（包含尚未配置 Key 的，方便首次设置）
+---@param cb fun(provider_name: string)
+function M.pick_provider(cb)
+  local items = {}
+  for _, name in ipairs(M.order) do
+    if M.providers[name] then
+      items[#items + 1] = { name = name, label = provider_label(name) }
+    end
+  end
+
+  local labels = {}
+  for _, it in ipairs(items) do
+    labels[#labels + 1] = it.label
+  end
+
+  vim.ui.select(labels, { prompt = "选择 AI 供应商" }, function(_, idx)
+    if not idx then
+      notify("已取消配置")
+      return
+    end
+    cb(items[idx].name)
+  end)
+end
+
+local function choose_model(provider_name)
+  local p = M.providers[provider_name]
+  if not p then
+    return
+  end
+
+  local items = {}
+  local seen = {}
+
+  local function add(m, tag)
+    if not m or not m.id or seen[m.id] then
+      return
+    end
+    seen[m.id] = true
+    local label = (m.name or m.id) .. "  ·  " .. m.id
+    if m.ctx then
+      label = label .. "  ·  " .. math.floor(m.ctx / 1000) .. "k ctx"
+    end
+    if tag then
+      label = tag .. "  " .. label
+    end
+    items[#items + 1] = { model = m.id, label = label }
+  end
+
+  -- 推荐模型排在前面
+  if type(p.cycle) == "table" then
+    for _, id in ipairs(p.cycle) do
+      add(M.model_info(provider_name, id), "★")
+    end
+  end
+  for _, m in ipairs(M.models(provider_name)) do
+    add(m)
+  end
+  items[#items + 1] = { custom = true, label = "自定义模型 ID…" }
+
+  local labels = {}
+  for _, it in ipairs(items) do
+    labels[#labels + 1] = it.label
+  end
+
+  vim.ui.select(labels, {
+    prompt = "选择 " .. (p.label or provider_name) .. " 的模型",
+  }, function(_, idx)
+    if not idx then
+      notify("已取消配置")
+      return
+    end
+    local it = items[idx]
+    local model = it.model
+    if it.custom then
+      model = vim.trim(vim.fn.input({ prompt = "模型 ID: " }))
+      if model == "" then
+        notify("未输入模型 ID，已取消", vim.log.levels.WARN)
+        return
+      end
+    end
+
+    local ok, err = M.set_active(provider_name, model)
+    if not ok then
+      notify(err or "切换失败", vim.log.levels.ERROR)
+      return
+    end
+
+    local sel = M.resolve("chat")
+    if sel.missing_key then
+      notify(
+        string.format("已选择 %s / %s，但仍缺少 Key：按 <leader>oK 补上", sel.provider_label, sel.model),
+        vim.log.levels.WARN
+      )
+    else
+      notify(string.format("已启用全局模型 → %s / %s", sel.provider_label, sel.model))
+    end
+  end)
+end
+
+local ask_key
+
+---@param provider_name string
+---@param next_fn fun()
+ask_key = function(provider_name, next_fn)
+  local p = M.providers[provider_name]
+  if not p then
+    return
+  end
+
+  -- 本机服务不需要 Key
+  if p.requires_key == false or p.protocol == "ollama" then
+    next_fn()
+    return
+  end
+
+  local src = M.key_source(provider_name)
+  local items
+  if src then
+    items = {
+      { action = "keep", label = "继续使用当前 Key（来源：" .. src .. "）" },
+      { action = "input", label = "输入新的 Key…" },
+      { action = "clear", label = "清除本机密钥库中的 Key" },
+    }
+  else
+    items = {
+      { action = "input", label = "输入 Key…" },
+      { action = "skip", label = "暂时跳过（稍后可用 :CrowSetup）" },
+    }
+  end
+
+  local labels = {}
+  for _, it in ipairs(items) do
+    labels[#labels + 1] = it.label
+  end
+
+  vim.ui.select(labels, {
+    prompt = (p.label or provider_name) .. " · API Key",
+  }, function(_, idx)
+    if not idx then
+      notify("已取消配置")
+      return
+    end
+    local action = items[idx].action
+
+    if action == "keep" then
+      next_fn()
+      return
+    end
+
+    if action == "skip" then
+      next_fn()
+      return
+    end
+
+    if action == "clear" then
+      M.set_key(provider_name, nil)
+      notify("已清除本机密钥库中的 " .. (p.label or provider_name) .. " Key")
+      -- 环境变量 / secrets.lua 还可能提供 Key；否则重新询问
+      ask_key(provider_name, next_fn)
+      return
+    end
+
+    local input = vim.fn.inputsecret({ prompt = (p.label or provider_name) .. " API Key: " })
+    input = vim.trim(input or ""):gsub("^[Bb]earer%s+", "")
+    if input == "" then
+      notify("未输入 Key，保持当前配置", vim.log.levels.WARN)
+      next_fn()
+      return
+    end
+
+    local ok, err = M.set_key(provider_name, input)
+    if not ok then
+      notify(err or "保存 Key 失败", vim.log.levels.ERROR)
+      ask_key(provider_name, next_fn)
+      return
+    end
+    notify("已保存 " .. (p.label or provider_name) .. " 的 Key（仅本机，权限 0600）")
+    next_fn()
+  end)
+end
+
+---菜单式首次配置：供应商 → 输入 Key（本机跳过）→ 选择模型
+function M.setup_wizard()
+  M.pick_provider(function(provider_name)
+    ask_key(provider_name, function()
+      choose_model(provider_name)
+    end)
+  end)
+end
+
 -- ─── 状态行（供 dashboard / :CrowAiStats 用）───────────────
 ---@param role string
 ---@return string
@@ -808,6 +1146,10 @@ end
 
 -- ─── 命令与快捷键 ──────────────────────────────────────────
 function M.setup()
+  vim.api.nvim_create_user_command("CrowSetup", function()
+    M.setup_wizard()
+  end, { desc = "配置 AI 供应商 Key 与模型" })
+
   vim.api.nvim_create_user_command("CrowModel", function(opts)
     local arg = vim.trim(opts.args or "")
     if arg == "next" or arg == "cycle" then
@@ -815,8 +1157,12 @@ function M.setup()
       notify(msg or "切换失败", ok and vim.log.levels.INFO or vim.log.levels.ERROR)
       return
     end
+    if arg == "setup" or arg == "key" then
+      M.setup_wizard()
+      return
+    end
     if arg ~= "" and not vim.tbl_contains(M.roles, arg) and arg ~= "global" then
-      notify("用法: :CrowModel [next|global|" .. table.concat(M.roles, "|") .. "]", vim.log.levels.ERROR)
+      notify("用法: :CrowModel [next|setup|global|" .. table.concat(M.roles, "|") .. "]", vim.log.levels.ERROR)
       return
     end
     if arg == "global" or arg == "" then
@@ -828,7 +1174,7 @@ function M.setup()
     nargs = "?",
     desc = "选择 / 切换 AI 模型",
     complete = function(arglead)
-      local all = { "next", "global" }
+      local all = { "next", "setup", "global" }
       vim.list_extend(all, M.roles)
       return vim.tbl_filter(function(s)
         return s:sub(1, #arglead) == arglead
@@ -844,8 +1190,13 @@ function M.setup()
   vim.keymap.set("n", "<leader>oM", function()
     M.pick(nil)
   end, { desc = "AI 模型：选择面板" })
+
+  vim.keymap.set("n", "<leader>oK", function()
+    M.setup_wizard()
+  end, { desc = "AI 配置：输入 Key / 选择模型" })
 end
 
 load_state()
+load_keys()
 
 return M
