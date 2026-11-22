@@ -15,7 +15,7 @@
 
 -- ─── 版本 ───────────────────────────────────────────────────
 -- 与仓库根目录的 VERSION 文件保持一致；:Doctor 会显示这个值。
-vim.g.crow_version = "v1.0.0"
+vim.g.crow_version = "v1.0.1"
 
 -- ─── 选项（必须在 lazy.nvim / LazyVim 之前）────────────────
 require("config.options")

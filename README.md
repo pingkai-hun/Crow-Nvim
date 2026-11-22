@@ -1,6 +1,6 @@
 # CrowNvim
 
-> **版本：v1.0.0**
+> **版本：v1.0.1**
 > 基于 [LazyVim](https://github.com/LazyVim/LazyVim) 的个人 Neovim 配置。
 > 目标：把 Vim 时代顺手的工作流完整搬到 Neovim，同时保持启动快、行为可预测、出问题能自己查。
 
@@ -45,7 +45,7 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 - 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以自动翻译成中文；
 - 所有「为什么这么配」都写在对应 Lua 文件的头部注释里，方便日后自己改。
 
-当前版本为 **v1.0.0**。从 v1.0.0 起遵循语义化版本：
+当前版本为 **v1.0.1**。从 v1.0.0 起遵循语义化版本：
 
 - **v1.x 内保证向后兼容** —— 已发布的命令（`:CrowExplain` / `:CrowReview` / `:CrowAsk` 等）、`<leader>` 键位映射、
   `scripts/features.sh` 的子命令与开关名、`scripts/features_user.lua` 的格式，都不会在不作说明的情况下删除或改名；
@@ -315,7 +315,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 ```text
 ~/.config/nvim
 ├── init.lua                 # 入口：按顺序加载 options / neovide / crow / keymaps / autocmds / lazy
-├── VERSION                  # 当前版本（v1.0.0）
+├── VERSION                  # 当前版本（v1.0.1）
 ├── KEYMAPS.md               # 完整快捷键说明
 ├── lazy-lock.json           # 插件版本锁（提交到仓库，保证可复现）
 ├── lazyvim.json             # LazyVim extras 记录
@@ -576,7 +576,7 @@ git -C ~/.config/nvim checkout <commit> -- .
 - **LSP 服务器不走 Mason 自动安装**（多数 `mason = false`），需要系统里已有可执行文件。
 - **Copilot 行内补全默认关闭**，因为 minuet 已经占用幽灵文本；需要云端补全时改 `lua/plugins/copilot.lua` 的 `suggestion.enabled = true`。
 - **AI 默认需要云端 Key**（OpenCode 等）；没有 Key 时会自动回退本机 Ollama，因此本机服务或模型缺失时，翻译/解释会明确报错，不会静默失败。
-- **配置仍在 Beta**，键位和插件选择可能变化。
+- **配置仍在持续演进**，键位和插件选择可能变化。
 
 ---
 

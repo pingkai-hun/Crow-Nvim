@@ -1,6 +1,6 @@
 # Neovim 快捷键说明
 
-> 适用版本：**CrowNvim v1.0.0**
+> 适用版本：**CrowNvim v1.0.1**
 > 适用配置：`~/.config/nvim`
 > `leader` = **空格**，`localleader` = `\`
 > 不确定按键时按 `<leader>` 等 1 秒，或按 `<leader>?` 查看当前 buffer 的键位。
