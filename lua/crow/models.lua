@@ -99,6 +99,40 @@ M.providers = {
     },
   },
 
+  -- AMD Radeon Cloud · Token Factory：OpenAI 兼容，Bearer API Key（rc- 开头）
+  -- 官方文档：https://developer.amd.com.cn/radeon-cloud-docs
+  --
+  -- 模型 ID 必须一字不差（区分大小写），以 GET /v1/models 返回的 id 为准；
+  -- 卡片标题和 name 字段都不能代替 ID。
+  -- 平台的 reasoning_effort 支持情况不一致：Qwen3.8-27B 拒收 high、GLM-5.3-Flash 拒收 xhigh，
+  -- 所以这里不设 reasoning_effort，降温只作用于标了 temperature_supported 的模型。
+  amd = {
+    label = "AMD Radeon Cloud",
+    protocol = "openai",
+    base_url = "https://developer.amd.com.cn/radeon/api/v1",
+    env = "RADEON_API_KEY",
+    requires_key = true,
+    defaults = {
+      chat = "DeepSeek-V4.1-Flash",
+      inline = "DeepSeek-V4.1-Flash",
+      analyze = "DeepSeek-V4.1-Flash",
+      translate = "DeepSeek-V4-Flash",
+    },
+    cycle = { "DeepSeek-V4.1-Flash", "DeepSeek-V4-Flash", "Qwen3.8-27B", "GLM-5.3-Flash", "MiMo-V2.6-Flash" },
+    models = {
+      { id = "DeepSeek-V4.1-Flash", name = "DeepSeek V4.1 Flash", ctx = 1048576 },
+      { id = "DeepSeek-V4-Flash", name = "DeepSeek V4 Flash", ctx = 1048576 },
+      { id = "DeepSeek-V4-Flash-Vision-Exp", name = "DeepSeek V4 Flash Vision (exp)", ctx = 1048576 },
+      { id = "Qwen3.8-27B", name = "Qwen3.8 27B", ctx = 262144 },
+      { id = "GLM-5.3-Flash", name = "GLM 5.3 Flash", ctx = 262144 },
+      { id = "MiMo-V2.6-Flash", name = "MiMo V2.6 Flash", ctx = 1048576 },
+      { id = "Gemma-4-31B-IT", name = "Gemma 4 31B IT", ctx = 262144 },
+      { id = "MiniCPM5-2B", name = "MiniCPM5 2B", ctx = 131072 },
+      { id = "MiniCPM-V-4.7-1B", name = "MiniCPM-V 4.7 1B", ctx = 262144 },
+      { id = "MiniCPM-V-4.7-35B-A3B", name = "MiniCPM-V 4.7 35B A3B", ctx = 262144 },
+    },
+  },
+
   -- Agnes AI：OpenAI 兼容；国内站主线路
   -- 国际站主线路：https://apihub.agnes-ai.com/v1
   -- 国际站备用线路：https://apihub.agnes-ai.cn/v1
@@ -294,7 +328,18 @@ M.providers = {
 }
 
 -- 自动挑选 / 面板展示顺序。OpenCode 放第一位。
-M.order = { "opencode", "agnes", "openrouter", "dashscope", "deepseek", "kimi", "zhipu", "siliconflow", "ollama" }
+M.order = {
+  "opencode",
+  "amd",
+  "agnes",
+  "openrouter",
+  "dashscope",
+  "deepseek",
+  "kimi",
+  "zhipu",
+  "siliconflow",
+  "ollama",
+}
 
 -- 角色：global 只是展示用，实际解析时不会作为 key
 M.roles = { "chat", "inline", "analyze", "translate", "complete" }
