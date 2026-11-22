@@ -81,7 +81,7 @@
 
 然后按提示操作：
 
-1. **选择供应商**：OpenCode、AMD Radeon Cloud、Agnes AI、OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动、本机 Ollama；
+1. **选择供应商**：OpenCode、AMD Radeon Cloud、NVIDIA NIM、Agnes AI、OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动、本机 Ollama；
 2. **输入 Key**：输入时不回显；如果已有 Key，可以选择继续使用、输入新的、或清除本机保存的 Key；
 3. **选择模型**：推荐模型带 `★`，也可以选「自定义模型 ID…」。
 
@@ -430,6 +430,7 @@ scripts/features.sh reset     # 恢复出厂默认
 |---|---|---|
 | OpenCode（默认） | `OPENCODE_API_KEY` | `https://opencode.ai/inference/openai/v1` |
 | AMD Radeon Cloud | `RADEON_API_KEY` | `https://developer.amd.com.cn/radeon/api/v1` |
+| NVIDIA NIM | `NVIDIA_API_KEY` | `https://integrate.api.nvidia.com/v1` |
 | Agnes AI | `AGNES_API_KEY` | `https://api.agnes-ai.cn/v1` |
 | OpenRouter | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
 | 阿里云百炼 | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
@@ -444,6 +445,10 @@ scripts/features.sh reset     # 恢复出厂默认
 > **Agnes AI 线路**：默认走国内站 `https://api.agnes-ai.cn/v1`。如果该线路不可用，可改用国际站主线路 `https://apihub.agnes-ai.com/v1` 或国际站备用线路 `https://apihub.agnes-ai.cn/v1`；认证、额度、限流错误不要靠换线路解决。
 >
 > OpenCode 的模型清单与价格会更新，以 <https://opencode.ai/docs/zen/> 为准。
+>
+> **NVIDIA NIM**：Key 在 [build.nvidia.com](https://build.nvidia.com) 个人页生成，`nvapi-` 开头。
+> 模型清单可以匿名读取：`curl https://integrate.api.nvidia.com/v1/models`，配置里内置的是对话类模型；
+> 该列表同时含 embedding / rerank / guard / 视频检测模型，它们不能用于 `/chat/completions`。
 >
 > **AMD Radeon Cloud**：Key 在 [Token Factory](https://developer.amd.com.cn/radeon/tokenfactory) 页面顶部复制，`rc-` 开头。
 > 模型 ID **区分大小写、必须一字不差**（例如 `DeepSeek-V4.1-Flash`），以 `GET /v1/models` 的 `id` 为准，

@@ -133,6 +133,44 @@ M.providers = {
     },
   },
 
+  -- NVIDIA NIM（build.nvidia.com）：OpenAI 兼容，API Key 以 nvapi- 开头
+  -- 文档：https://docs.api.nvidia.com
+  --
+  -- 模型清单在 https://integrate.api.nvidia.com/v1/models 公开可读，可随时用「自定义模型 ID」添加新模型。
+  -- 注意：embedding / rerank / guard / 视频检测类模型同样出现在列表里，它们不能用于 /chat/completions。
+  nvidia = {
+    label = "NVIDIA NIM",
+    protocol = "openai",
+    base_url = "https://integrate.api.nvidia.com/v1",
+    env = "NVIDIA_API_KEY",
+    requires_key = true,
+    defaults = {
+      chat = "moonshotai/kimi-k3.1-pro",
+      inline = "nvidia/nemotron-3.5-lightning-30b-a3b",
+      analyze = "nvidia/nemotron-3-ultra-550b-a55b",
+      translate = "z-ai/glm-5.3-flash",
+    },
+    cycle = {
+      "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "moonshotai/kimi-k3.1-pro",
+      "nvidia/nemotron-3-ultra-550b-a55b",
+      "mistralai/mistral-large-4-1t-a52b",
+      "z-ai/glm-5.3-flash",
+    },
+    models = {
+      { id = "nvidia/nemotron-3.5-lightning-30b-a3b", name = "Nemotron 3.5 Lightning 30B A3B" },
+      { id = "nvidia/nemotron-3-ultra-550b-a55b", name = "Nemotron 3 Ultra 550B A55B" },
+      { id = "nvidia/nemotron-3.5-bolt-e4b", name = "Nemotron 3.5 Bolt E4B" },
+      { id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", name = "Nemotron 3 Nano Omni 30B A3B" },
+      { id = "moonshotai/kimi-k3.1-pro", name = "Kimi K3.1 Pro" },
+      { id = "mistralai/mistral-large-4-1t-a52b", name = "Mistral Large 4 1T A52B" },
+      { id = "z-ai/glm-5.3-flash", name = "GLM 5.3 Flash" },
+      { id = "minimaxai/minimax-m3.1-flash", name = "MiniMax M3.1 Flash" },
+      { id = "google/gemma-4-31b-it", name = "Gemma 4 31B IT" },
+      { id = "bigcode/starcoder2-15b", name = "StarCoder2 15B" },
+    },
+  },
+
   -- Agnes AI：OpenAI 兼容；国内站主线路
   -- 国际站主线路：https://apihub.agnes-ai.com/v1
   -- 国际站备用线路：https://apihub.agnes-ai.cn/v1
@@ -331,6 +369,7 @@ M.providers = {
 M.order = {
   "opencode",
   "amd",
+  "nvidia",
   "agnes",
   "openrouter",
   "dashscope",
