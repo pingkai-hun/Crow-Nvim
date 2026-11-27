@@ -612,7 +612,7 @@ curl http://127.0.0.1:11434/api/tags
 
 ```bash
 ollama list
-ollama pull deepseek-r1:1.5b
+ollama pull qwen2.5-coder:1.5b
 ollama pull qwen2.5-coder:3b
 ```
 

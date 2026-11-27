@@ -208,11 +208,10 @@ M.providers = {
       inline = "qwen2.5-coder:1.5b",
       analyze = "qwen2.5-coder:3b",
       translate = "qwen2.5-coder:3b",
-      complete = "deepseek-r1:1.5b",
+      complete = "qwen2.5-coder:1.5b",
     },
-    cycle = { "deepseek-r1:1.5b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b" },
+    cycle = { "qwen2.5-coder:3b", "qwen2.5-coder:1.5b" },
     models = {
-      { id = "deepseek-r1:1.5b", name = "DeepSeek R1 1.5B", ctx = 32768 },
       { id = "qwen2.5-coder:3b", name = "Qwen2.5 Coder 3B", ctx = 32768 },
       { id = "qwen2.5-coder:1.5b", name = "Qwen2.5 Coder 1.5B", ctx = 32768 },
     },

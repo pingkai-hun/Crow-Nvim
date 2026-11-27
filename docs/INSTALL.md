@@ -380,7 +380,7 @@ ollama serve
 拉取模型：
 
 ```bash
-ollama pull deepseek-r1:1.5b   # 行内补全（默认）
+ollama pull qwen2.5-coder:1.5b   # 行内补全（默认）
 ollama pull qwen2.5-coder:3b     # 本机兜底：对话 / 解释 / 翻译
 ```
 
