@@ -47,7 +47,20 @@ return {
       end
 
       opts.formatters.ruff_format = {
-        prepend_args = { "--line-length", "100" },
+        -- ruff 0.17：--line-length 必须放在 format 子命令之后。
+        -- conform 的 prepend_args 会把它塞到 "format" 之前，导致
+        -- "unexpected argument '--line-length' found"，所以直接重写 args。
+        args = function(_, ctx)
+          return {
+            "format",
+            "--line-length",
+            "100",
+            "--force-exclude",
+            "--stdin-filename",
+            ctx.filename,
+            "-",
+          }
+        end,
       }
       opts.formatters.black = {
         prepend_args = { "--line-length", "100" },
