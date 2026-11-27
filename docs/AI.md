@@ -29,7 +29,7 @@
 
 | 能力 | 模块 | 默认模型 | 触发 |
 |---|---|---|---|
-| 行内幽灵补全 | `minuet-ai.nvim` | 本机 `qwen2.5-coder:1.5b` | 插入模式自动 |
+| 行内幽灵补全 | `minuet-ai.nvim` | 本机 `deepseek-r1:1.5b` | 插入模式自动 |
 | 对话 / 内联改写 | `codecompanion.nvim` | 全局模型（OpenCode / Kimi K2.6） | `<leader>oc` / `ov` / `oe`，或命令 |
 | 结构化审查 | `codecompanion.nvim` | 全局模型 | `<leader>oR` |
 | 代码解释 | `crow.ai` | 全局模型（OpenCode / Claude Sonnet 5.5） | `<leader>oa` / `:CrowExplain` |
@@ -216,7 +216,7 @@ vim.g.crow_ai_fallback = false
 
 ### 全局切换不会影响补全
 
-这是刻意的：补全对延迟最敏感，默认固定本机 `qwen2.5-coder:1.5b`。
+这是刻意的：补全对延迟最敏感，默认固定本机 `deepseek-r1:1.5b`。
 只有显式执行 `:CrowModel complete` 更换补全模型时才需要重启 Neovim。
 
 ---
@@ -249,7 +249,7 @@ vim.g.crow_ai_fallback = false
 
 ```bash
 ollama serve
-ollama pull qwen2.5-coder:1.5b
+ollama pull deepseek-r1:1.5b
 ```
 
 端点：`http://127.0.0.1:11434/v1/completions`（OpenAI FIM 兼容）。
@@ -621,12 +621,12 @@ curl -sS https://opencode.ai/inference/openai/v1/models \
 1. 确认是代码类 filetype；
 2. 确认在插入模式；
 3. `:messages` 看 minuet 是否报错；
-4. 确认 Ollama 在线，且 `qwen2.5-coder:1.5b` 已拉取；
+4. 确认 Ollama 在线，且 `deepseek-r1:1.5b` 已拉取；
 5. 确认 `:CrowModel complete` 当前指向本机（补全默认不跟随全局）。
 
 ```bash
 ollama list
-ollama pull qwen2.5-coder:1.5b
+ollama pull deepseek-r1:1.5b
 ```
 
 ### 翻译不出现

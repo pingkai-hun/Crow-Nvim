@@ -2,7 +2,7 @@
 -- PLUGINS - minuet-ai.nvim (Inline Completion)
 -- ═══════════════════════════════════════════════════════════
 --
--- 行内幽灵补全默认仍走本机 Ollama 的 qwen2.5-coder:1.5b（FIM），
+-- 行内幽灵补全默认仍走本机 Ollama 的 deepseek-r1:1.5b（FIM），
 -- 因为它对延迟最敏感；对话 / 解释 / 审查 / 翻译已经切到云端。
 --
 -- 模型由 crow.models 的 `complete` 角色决定：

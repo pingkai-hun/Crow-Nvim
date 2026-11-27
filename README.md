@@ -154,7 +154,7 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 ### AI
 
 - **云端模型 + 本机补全**：
-  - `minuet-ai.nvim` 行内幽灵补全（默认本机 Ollama `qwen2.5-coder:1.5b`，低延迟）；
+  - `minuet-ai.nvim` 行内幽灵补全（默认本机 Ollama `deepseek-r1:1.5b`，低延迟）；
   - `codecompanion.nvim` 对话 / 内联改写 / 结构化审查（默认 OpenCode 聚合平台）；
   - `crow.ai` 代码解释 / 审查 / 提问（云端）；
   - LSP 悬浮文档与补全文档自动翻译成中文（云端）；
@@ -288,14 +288,14 @@ nvim +checkhealth
 |---|---|
 | 云端 API Key | 对话 / 解释 / 审查 / 翻译（默认 OpenCode，可在 `secrets.lua` 配置多家） |
 | [Ollama](https://ollama.com/) | 行内补全（默认）与无 Key 时的离线兜底 |
-| `qwen2.5-coder:1.5b` | 行内补全 |
+| `deepseek-r1:1.5b` | 行内补全 |
 | `qwen2.5-coder:3b` | 本机兜底：对话 / 解释 / 翻译 |
 | GitHub Copilot 订阅 | CopilotChat（可选） |
 
 ```bash
 # 本机补全 / 兜底
 ollama serve
-ollama pull qwen2.5-coder:1.5b
+ollama pull deepseek-r1:1.5b
 ollama pull qwen2.5-coder:3b
 
 # 云端模型：进入 Neovim 按 <leader>oK，按菜单提示输入 Key 并选模型
@@ -520,7 +520,7 @@ CrowNvim 对 Python 做了专门处理，核心逻辑在 `lua/crow/lang/python.l
 
 | 能力 | 插件 / 模块 | 默认模型 | 触发方式 |
 |---|---|---|---|
-| 行内补全 | `minuet-ai.nvim` | 本机 `qwen2.5-coder:1.5b` | 插入模式自动触发 |
+| 行内补全 | `minuet-ai.nvim` | 本机 `deepseek-r1:1.5b` | 插入模式自动触发 |
 | 对话 / 内联改写 | `codecompanion.nvim` | 全局模型（默认 OpenCode） | `:CodeCompanionChat` 等 |
 | 代码解释 / 审查 / 提问 | `crow.ai` | 全局模型（默认 OpenCode） | `<leader>oa` / `or` / `oq` |
 | 悬浮文档翻译 | `crow.translate` + `noice` | 全局模型 | 自动 |

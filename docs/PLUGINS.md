@@ -219,7 +219,7 @@ Python 的工具选择逻辑集中在 `lua/crow/lang/python.lua`，插件层只�
 
 | 插件 | 作用 | 模型 / 配置 |
 |---|---|---|
-| `milanglacier/minuet-ai.nvim` | 行内幽灵补全 | 默认本机 `qwen2.5-coder:1.5b`；`minuet.lua` |
+| `milanglacier/minuet-ai.nvim` | 行内幽灵补全 | 默认本机 `deepseek-r1:1.5b`；`minuet.lua` |
 | `olimorris/codecompanion.nvim` | 对话 / 内联改写 / 动作面板 | 全局云端模型；`codecompanion.lua` |
 | `zbirenbaum/copilot.lua` | GitHub Copilot 行内补全（默认关闭） | `copilot.lua` |
 | `CopilotC-Nvim/CopilotChat.nvim` | Copilot 对话 | `copilot-chat.lua` |
