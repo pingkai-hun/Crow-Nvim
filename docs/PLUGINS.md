@@ -58,6 +58,7 @@ LazyVim extras：
 | `junegunn/vim-easy-align` | `ga` 对齐 | `lua/plugins/easyvim-extra.lua` |
 | `mattn/emmet-vim` | HTML/CSS Emmet 展开 | `lua/plugins/easyvim-extra.lua` |
 | `HiPhish/rainbow-delimiters.nvim` | 彩虹括号，跟随语义色板 | `lua/plugins/easyvim-extra.lua` |
+| `ThePrimeagen/refactoring.nvim` | 抽取函数 / 变量 / 代码块，内联变量 | `lua/plugins/refactoring.lua` |
 | `lukas-reineke/indent-blankline.nvim` | 缩进参考线 | `lua/plugins/indent-blankline.lua` |
 | `nmac427/guess-indent.nvim` | 自动探测缩进风格 | `lua/plugins/guess-indent.lua` |
 | `tris203/precognition.nvim` | 显示可用 motion 提示 | `lua/plugins/precognition.lua` |
@@ -77,6 +78,7 @@ LazyVim extras：
 | `folke/snacks.nvim` | **默认 picker / explorer / notifier / dashboard / terminal** | `snacks.lua`、`ui-dashboard.lua`、`image.lua` |
 | `nvim-telescope/telescope.nvim` | 备用 picker；TODO 搜索 | `todo-comments.lua` |
 | `ThePrimeagen/harpoon` | 常用文件书签 | `lua/plugins/harpoon.lua` |
+| `MagicDuck/grug-far.nvim` | 项目级搜索替换；逐条确认、文件过滤 | `lua/plugins/grug-far.lua` |
 | `folke/flash.nvim` | 屏幕内快速跳转 | 见编辑增强 |
 | `nvim-lua/plenary.nvim` | 多个插件的底层依赖 | 自动 |
 | `folke/persistence.nvim` | LazyVim 会话能力（本项目另有一套 `crow` 会话命令） | LazyVim 默认 |
@@ -113,7 +115,7 @@ LazyVim extras：
 
 | 语言 | 服务器 | 安装方式 |
 |---|---|---|
-| Python | `pyright` | 系统 / pipx |
+| Python | `pyright` 或 `basedpyright`（自动二选一） | 系统 / pipx |
 | Python 格式化 | `ruff` | 系统 / pipx |
 | Go | `gopls` | `go install` |
 | Rust | `rust-analyzer` | rustup |
@@ -134,9 +136,21 @@ LazyVim extras：
 
 | 插件 | 作用 | 配置 |
 |---|---|---|
-| `linux-cultist/venv-selector.nvim` | 虚拟环境选择、状态栏、pyright 重启 | `lua/plugins/venv-selector.lua` |
-| pyright（LSP） | 诊断、类型检查、import 解析 | `lua/plugins/lsp.lua` |
-| ruff（conform） | import 整理 + 格式化 | `lua/plugins/lsp.lua` |
+| `linux-cultist/venv-selector.nvim` | 虚拟环境选择、状态栏、LSP 重启 | `lua/plugins/venv-selector.lua` |
+| pyright / basedpyright（LSP） | 诊断、类型检查、import 解析，按可执行文件自动二选一 | `lua/crow/lang/python.lua`、`lua/plugins/python.lua` |
+| ruff / black / isort（conform） | import 整理 + 格式化，ruff 缺失时自动回退 | `lua/crow/lang/python.lua`、`lua/plugins/python.lua` |
+| `nvim-neotest/neotest` + `neotest-python` | pytest / unittest 测试发现、运行、汇总 | `lua/plugins/python.lua` |
+| `mfussenegger/nvim-dap-python` | 使用项目解释器调试与调试测试 | `lua/plugins/python.lua` |
+
+Python 的工具选择逻辑集中在 `lua/crow/lang/python.lua`，插件层只负责接线：
+
+- LSP：`basedpyright` > `pyright`（只启动一个，避免重复诊断）；
+- 格式化：`ruff` > `black` + `isort` > `black`；
+- 测试：`pytest` > `unittest`；
+- 包管理：`uv` > `poetry` > `pipenv` > `pixi` > `conda` > `pip`；
+- 解释器：`$VIRTUAL_ENV` / `$CONDA_PREFIX` > venv-selector > 项目 `.venv`。
+
+用 `:CrowPython` 查看当前项目最终选中的组合。
 
 ### Go
 
@@ -171,6 +185,7 @@ LazyVim extras：
 | 插件 | 作用 | 配置 |
 |---|---|---|
 | `iamcco/markdown-preview.nvim` | 浏览器实时预览 | `lua/plugins/markdown-preview.lua` |
+| `MeanderingProgrammer/render-markdown.nvim` | buffer 内渲染标题、列表、表格、代码块 | `lua/plugins/render-markdown.lua` |
 
 ---
 
@@ -193,6 +208,7 @@ LazyVim extras：
 | `rcarriga/nvim-dap-ui` | 调试界面 | LazyVim extras |
 | `theHamsta/nvim-dap-virtual-text` | 行内显示变量值 | LazyVim extras |
 | `leoluz/nvim-dap-go` | Go delve 适配 | `lua/plugins/go.lua` |
+| `mfussenegger/nvim-dap-python` | Python 调试适配（使用项目解释器） | `lua/plugins/python.lua` |
 | `mason-nvim-dap.nvim` | 调试器安装桥接 | LazyVim extras |
 
 键位：`<F5>` / `<F9>` / `<F10>` / `<F11>` / `<F12>`、`<leader>dr` / `dq` / `dR`。

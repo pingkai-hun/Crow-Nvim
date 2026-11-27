@@ -118,6 +118,8 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 - **Treesitter**：语法高亮、缩进、文本对象、自动安装解析器。
 - **Flash**：`s` / `S` / `r` / `R` 快速跳转与语法节点选择。
 - **Surround / 多光标 / Yanky / EasyAlign / 自动括号**：常用编辑增强一应俱全。
+- **结构化重构**：`refactoring.nvim` 抽取函数 / 变量 / 代码块、内联变量，按需加载。
+- **Markdown 内联渲染**：`render-markdown.nvim` 在编辑器内渲染标题、列表、表格和代码块，与浏览器预览互补。
 - **大文件降级**：超过 1 MB 自动关闭 swap、undo、Treesitter 高亮与缩进，防止卡死。
 
 ### 搜索与导航
@@ -125,13 +127,14 @@ lualine 的**圆角胶囊**样式：整条背景连成一整块，两端用 `\u{
 - `snacks.nvim` picker：文件、grep、buffer、LSP 符号、yank 历史、通知历史。
 - 项目根智能识别：`.git` / `go.mod` / `package.json` / `pyproject.toml` / `Cargo.toml` / `Makefile` 等。
 - `harpoon` 常用文件书签，按项目独立保存。
+- `grug-far` 项目级搜索替换，可只替换当前文件或逐条确认。
 - `nvim-spider` 更符合代码语义的 `w` / `e` / `b` 移动。
 
 ### 语言支持
 
 | 语言 | LSP | 格式化 | 其他 |
 |---|---|---|---|
-| Python | pyright（自动识别 `.venv` / venv-selector） | ruff（organize imports + format） | venv-selector、红队模板 |
+| Python | pyright / basedpyright（自动选择，自动识别 `.venv` / venv-selector） | ruff > black + isort（自动回退） | venv-selector、neotest（pytest / unittest）、DAP、红队模板 |
 | Go | gopls | goimports | vim-go 命令、nvim-dap-go 调试 |
 | Rust | rust-analyzer（clippy on save） | rustfmt | rust.vim |
 | C / C++ | clangd | clang-format | — |
@@ -267,7 +270,7 @@ nvim +checkhealth
 
 | 语言 | 需要安装 |
 |---|---|
-| Python | `pyright`、`ruff`，以及项目自己的 `.venv` |
+| Python | `pyright` / `basedpyright`、`ruff`（缺失时 black / isort），以及项目自己的 `.venv`；测试用 `pytest` / `unittest` |
 | Go | `gopls`、`goimports`、`dlv`、`staticcheck` |
 | Rust | `rust-analyzer`、`rustfmt`、`clippy` |
 | C/C++ | `clangd`、`clang-format` |
@@ -342,7 +345,9 @@ export OPENROUTER_API_KEY="sk-or-..."
     │   ├── secrets.example.lua      # API Key 模板（复制为 secrets.lua）
     │   ├── models_user.example.lua  # 自定义供应商 / 模型模板
     │   ├── doctor.lua       # :Doctor 环境体检
-    │   └── guard.lua        # which-key 启动期防御
+    │   ├── guard.lua        # which-key 启动期防御
+    │   └── lang/
+    │       └── python.lua   # Python 工具链自动探测（LSP / 格式化 / 测试 / 解释器）
     └── plugins/             # 每个文件一个插件或一组插件
         ├── lsp.lua          # LSP + 诊断 + conform
         ├── blink.lua        # 补全汉化 / 文档翻译 / 样式
@@ -350,6 +355,10 @@ export OPENROUTER_API_KEY="sk-or-..."
         ├── ui-dashboard.lua # 启动页
         ├── lualine.lua      # 状态栏
         ├── venv-selector.lua
+        ├── python.lua       # Python LSP / 格式化 / 测试 / 调试自动接线
+        ├── grug-far.lua     # 项目级搜索替换
+        ├── refactoring.lua  # 结构化重构
+        ├── render-markdown.lua # Markdown 内联渲染
         ├── go.lua
         ├── typescript-tools.lua
         └── …
@@ -369,6 +378,7 @@ require("config.options")   -- 1. 选项必须先于 LazyVim
 require("config.neovide")   -- 2. 仅 GUI 生效
 require("crow").setup()     -- 3. 公共命令 / 主题 / 会话
 require("crow.models").setup() -- 4. AI 模型注册表 / :CrowModel / om
+require("crow.lang.python").setup() -- 4.1 Python 工具链探测 / :CrowPython
 require("crow.ai").setup()  -- 5. AI 分析命令
 require("config.keymaps")   -- 6. 全局快捷键
 require("config.autocmds")  -- 7. 自动命令
@@ -408,6 +418,7 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 | `:Floaterm <cmd>` | 浮动终端执行命令 |
 | `:VenvSelect` | 选择 Python 虚拟环境 |
 | `:VenvSelectLog` | 查看 venv-selector 日志 |
+| `:CrowPython` | 查看 Python 工具链自动选择结果 |
 | `:CrowExplain` | AI 解释当前函数 / 选区 |
 | `:CrowReview` | AI 审查代码 |
 | `:CrowAsk <问题>` | 带上下文向 AI 提问 |
@@ -440,6 +451,9 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 | `[d` / `]d` | 上一条 / 下一条诊断（自动弹消息） |
 | `<leader>rn` / `<leader>ac` | 重命名 / 代码动作 |
 | `<leader>cf` | 格式化当前文件 |
+| `<leader>cxf` / `<leader>cxv` / `<leader>cxi` | 重构：抽取函数 / 变量 / 内联变量 |
+| `<leader>sR` / `<leader>sW` | 项目级搜索替换 / 替换光标下的单词 |
+| `<leader>cTr` / `<leader>cTf` / `<leader>cTs` | Python 测试：最近 / 当前文件 / 汇总 |
 | `<leader>xx` / `<leader>xX` | 项目诊断 / 当前 buffer 诊断 |
 | `<F5>` / `<F9>` / `<F10>` / `<F11>` / `<F12>` | 调试：继续 / 断点 / 跳过 / 进入 / 跳出 |
 | `<F6>` | 保存并运行当前 Python 脚本 |
@@ -456,28 +470,49 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 
 ## Python / 虚拟环境
 
-CrowNvim 对 Python 做了专门处理：
+CrowNvim 对 Python 做了专门处理，核心逻辑在 `lua/crow/lang/python.lua`，
+插件接线在 `lua/plugins/python.lua`。所有选择都在打开项目时按本机实际情况自动完成：
 
-1. **pyright 自动找解释器**
-   启动 pyright 前按以下顺序选择：
-   - 已激活的 `$VIRTUAL_ENV`；
+| 项目 | 选择顺序 |
+|---|---|
+| LSP | `basedpyright` > `pyright`（只启动一个） |
+| 格式化 | `ruff` > `black` + `isort` > `black` |
+| 测试 | `pytest` > `unittest` |
+| 包管理 | `uv` > `poetry` > `pipenv` > `pixi` > `conda` > `pip` |
+| 解释器 | `$VIRTUAL_ENV` / `$CONDA_PREFIX` > venv-selector > 项目 `.venv` |
+
+1. **自动探测**
+   - LSP 只保留一个，避免 pyright / basedpyright 重复报诊断；
+   - 找不到 ruff 时自动退回 black / isort，不会因为缺工具而无法保存；
+   - `:CrowPython` 查看当前项目最终选中的解释器、LSP、格式化器和测试运行器。
+
+2. **解释器**
+   启动 LSP 前按以下顺序选择：
+   - 已激活的 `$VIRTUAL_ENV` / `$CONDA_PREFIX`；
    - venv-selector 当前选中的解释器；
    - 项目根目录下的 `.venv` / `venv` / `env`。
 
-2. **venv-selector**
+3. **venv-selector**
    - `<leader>cv`：打开选择器（picker 为 `snacks`）；
-   - `<leader>cV`：取消激活（会设置 `venv_selector_disabled`，防止 pyright 又自动塞回 `.venv`）；
+   - `<leader>cV`：取消激活（会设置 `venv_selector_disabled`，防止 LSP 又自动塞回 `.venv`）；
    - `<leader>cvr`：用当前环境重启 Python LSP；
    - 状态栏显示 `🐍 环境名`；
    - 每个项目记住上次选择。
 
-3. **红队模板**（仅 Python buffer）
+4. **测试与调试**
+   - `<leader>cTr` / `<leader>cTf`：运行最近的测试 / 当前测试文件；
+   - `<leader>cTs` / `<leader>cTo`：测试汇总 / 测试输出；
+   - `<leader>cTd`：调试最近的测试（需要项目安装 `debugpy`）；
+   - `<F5>` / `<F9>` / `<F10>` / `<F11>` / `<F12>` 由 `nvim-dap-python` 接管，解释器与上面一致。
+
+5. **红队模板**（仅 Python buffer）
    - `<leader>ip`：IP 解析模板；
    - `<leader>req`：HTTP 探测模板；
    - `<leader>port`：端口扫描模板。
 
-4. **诊断**
-   `.venv` 里没装的包报 `reportMissingImports` 时，先执行 `:Doctor` 看 pyright 实际使用的解释器，再确认 venv-selector 的选择。
+6. **诊断**
+   `.venv` 里没装的包报 `reportMissingImports` 时，先执行 `:CrowPython` 或 `:Doctor`
+   看 LSP 实际使用的解释器，再确认 venv-selector 的选择。
 
 ---
 

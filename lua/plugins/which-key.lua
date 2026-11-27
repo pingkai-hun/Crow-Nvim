@@ -108,6 +108,8 @@ return {
         { "<leader>a", group = "AI", icon = "", mode = "n" },
         { "<leader>b", group = "Buffers", icon = "", mode = "n" }, -- Buffer management
         { "<leader>c", group = "Code", icon = "", mode = "n" }, -- Code actions, LSP commands
+        { "<leader>cx", group = "Refactor", icon = "", mode = "n" }, -- 抽取 / 内联
+        { "<leader>cT", group = "Test", icon = "", mode = "n" }, -- 测试 / 调试
         { "<leader>d", group = "Debug", icon = "", mode = "n" }, -- DAP debugger commands
         { "<leader>f", group = "Find", icon = "", mode = "n" }, -- File and text search
         { "<leader>g", group = "Git", icon = "", mode = "n" }, -- Git operations

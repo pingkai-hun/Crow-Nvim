@@ -30,6 +30,9 @@ require("crow").setup()
 -- 不依赖 codecompanion / minuet 是否已加载。
 require("crow.models").setup()
 
+-- Python 工具链自动探测（:CrowPython）；插件层见 lua/plugins/python.lua
+require("crow.lang.python").setup()
+
 -- crow.ai 由功能开关控制（scripts/features.sh），关掉后
 -- :CrowExplain / :CrowReview / :CrowAsk 与 <leader>oa/or/oq/oi 都不注册。
 if require("crow.features").on("crow_ai") then

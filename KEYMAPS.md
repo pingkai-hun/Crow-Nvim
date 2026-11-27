@@ -65,6 +65,8 @@
 | `<leader>P` | 在**项目根目录**查找文件 |
 | `<leader>/` | 全局搜索（grep） |
 | `<leader>R` | 在**项目根目录**全局搜索 |
+| `<leader>sR` | 项目级搜索替换（grug-far，可逐条确认） |
+| `<leader>sW` | 替换光标下的单词（grug-far） |
 | `<leader>*` | 搜索光标下的单词 |
 | `<leader>b` | 切换 buffer |
 | `<leader>y` | 打开剪贴板 / yank 历史 |
@@ -223,6 +225,10 @@ Harpoon 列表按项目（cwd）独立保存。
 | 快捷键 | 功能 |
 |---|---|
 | `<leader>cf` | 格式化当前文件（LazyVim / conform） |
+| `<leader>cxf` | 重构：抽取函数（普通 / 可视模式） |
+| `<leader>cxv` | 重构：抽取变量（普通 / 可视模式） |
+| `<leader>cxi` | 重构：内联变量 |
+| `<leader>cxb` | 重构：抽取代码块（可视模式） |
 | `<leader>uf` | 开关「保存时自动格式化」 |
 | `<leader>uF` | 开关「当前 buffer 保存时格式化」 |
 
@@ -288,6 +294,11 @@ Harpoon 列表按项目（cwd）独立保存。
 | `<leader>cv` | 选择 Python 虚拟环境（venv-selector） |
 | `<leader>cV` | 取消当前虚拟环境 |
 | `<leader>cvr` | 用当前环境重启 Python LSP |
+| `<leader>cTr` | 运行最近的测试（neotest） |
+| `<leader>cTf` | 运行当前测试文件 |
+| `<leader>cTs` | 测试汇总面板 |
+| `<leader>cTo` | 打开测试输出 |
+| `<leader>cTd` | 调试最近的测试（需要 debugpy） |
 | `<leader>ip` | 插入 IP 解析模板 |
 | `<leader>req` | 插入 HTTP 探测模板 |
 | `<leader>port` | 插入端口扫描模板 |
@@ -296,6 +307,8 @@ Harpoon 列表按项目（cwd）独立保存。
 
 说明：
 
+- 工具链自动选择：basedpyright > pyright；ruff > black + isort；pytest > unittest。
+- 查看当前项目最终选择：`:CrowPython`。
 - venv 选择后会自动设置 `VIRTUAL_ENV`、更新 PATH，并重启 pyright。
 - 每个项目会记住上次选择的环境，下次打开自动恢复。
 - 状态栏显示 `🐍 环境名`。
@@ -356,7 +369,10 @@ Python 模板只在 `.py` buffer 中生效。
 
 | 快捷键 | 功能 |
 |---|---|
-| `<leader>cp` | 打开 / 关闭 Markdown 预览 |
+| `<leader>cp` | 打开 / 关闭 Markdown 浏览器预览 |
+
+`render-markdown.nvim` 会在 Markdown buffer 内直接渲染标题、列表、表格和代码块，
+无需额外按键；需要最终效果时再用 `<leader>cp` 打开浏览器预览。
 
 ---
 
@@ -461,6 +477,7 @@ Python 模板只在 `.py` buffer 中生效。
 | `:Doctor` | 环境体检：LSP、工具、主题、诊断、Python 解释器 |
 | `:VenvSelect` | 选择 Python 虚拟环境 |
 | `:VenvSelectLog` | 查看 venv-selector 日志 |
+| `:CrowPython` | 查看 Python 工具链自动选择结果 |
 | `:Lazy` | 插件管理 |
 | `:Lazy update` | 更新全部插件 |
 | `:Lazy update 插件名` | 更新单个插件 |

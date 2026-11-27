@@ -389,6 +389,22 @@ export CROW_VENV_ROOT="$HOME/venvs"
 
 取消选择时应为 `true`。
 
+### Python 工具链选择不符合预期
+
+```vim
+:CrowPython
+```
+
+会列出当前项目的根目录、解释器、包管理器、LSP、格式化器和测试运行器。
+常见原因：
+
+- `basedpyright-langserver` 不在 `PATH`：自动回退 `pyright`，只启动一个；
+- 没有 `ruff`：自动回退 `black` / `isort`，两者都没有则不格式化；
+- 没有 `pytest` 且项目文件里也没声明：自动使用 `unittest`；
+- 项目有 `.venv` 但 LSP 仍用系统解释器：先确认 venv-selector 没有选中其他环境。
+
+模块实现见 `lua/crow/lang/python.lua`，插件接线见 `lua/plugins/python.lua`。
+
 ---
 
 ## 7. 格式化

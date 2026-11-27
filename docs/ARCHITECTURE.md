@@ -98,6 +98,7 @@
 | `translate.lua` | 流式翻译，带 sha256 缓存与串行队列 |
 | `doctor.lua` | `:Doctor` 环境体检 |
 | `guard.lua` | 启动期确保 which-key 已完成 `setup()` |
+| `lang/python.lua` | Python 工具链自动探测：LSP / 格式化 / 测试 / 包管理 / 解释器，`:CrowPython` |
 
 ### `plugins/`
 
@@ -118,6 +119,7 @@ require("config.options")   -- 1
 require("config.neovide")   -- 2
 require("crow").setup()        -- 3
 require("crow.models").setup() -- 4
+require("crow.lang.python").setup() -- 4.1
 require("crow.ai").setup()     -- 5
 require("config.keymaps")      -- 6
 require("config.autocmds")     -- 7
@@ -136,7 +138,7 @@ require("config.lazy")         -- 8
    `config/keymaps.lua` 里直接 `require("crow")` 使用 `crow.notify`、`crow.toggle_terminal` 等函数。
 
 4. **AI 模型注册表 / 分析命令要早于 lazy**
-   `crow.models` 注册 `<leader>om` / `<leader>oM` 与 `:CrowModel`；`crow.ai` 注册 `<leader>oa` 等键位和 `:CrowExplain` 命令。命令先注册，插件后加载，用户随时可用。
+   `crow.models` 注册 `<leader>om` / `<leader>oM` 与 `:CrowModel`；`crow.lang.python` 注册 `:CrowPython` 并供 `lua/plugins/python.lua` 在 spec 求值时调用；`crow.ai` 注册 `<leader>oa` 等键位和 `:CrowExplain` 命令。命令先注册，插件后加载，用户随时可用。
 
 5. **`keymaps` / `autocmds` 在 lazy 之前**
    保证全局键位和自动命令不被插件默认值覆盖；插件自己的 buffer-local 键位再在之后叠加。
@@ -470,7 +472,7 @@ snacks/toggle.lua:132:   attempt to call field 'add' (a nil value)
 | `event = "VeryLazy"` | tabby |
 | `cmd = "..."` | CopilotChat、CodeCompanion |
 | `keys = { ... }` | diffview、neogit、harpoon |
-| `ft = "python"` | venv-selector |
+| `ft = "python"` | venv-selector、Python LSP / 测试 / 调试 |
 | `ft = { "go", ... }` | vim-go |
 
 启动关键路径上只剩 LazyVim 核心和少量立即加载的 UI 插件。启动耗时会在 `VimEnter` 后用通知显示。

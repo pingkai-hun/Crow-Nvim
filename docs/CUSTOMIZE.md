@@ -361,20 +361,40 @@ g.go_imports_autosave = 0
 
 ### 修改自动寻找的解释器
 
-`lua/plugins/lsp.lua` 的 `find_python(root)` 按以下顺序查找：
+`lua/crow/lang/python.lua` 的 `M.interpreter` 按以下顺序查找：
 
-1. `$VIRTUAL_ENV`
-2. `root/.venv`
-3. `root/venv`
-4. `root/env`
+1. `$VIRTUAL_ENV` / `$CONDA_PREFIX`
+2. venv-selector 当前选中的解释器
+3. `root/.venv` / `root/venv` / `root/env` / `root/.env`
 
 想加目录：
 
 ```lua
-for _, name in ipairs({ ".venv", "venv", "env", ".virtualenv" }) do
-  candidates[#candidates + 1] = vim.fs.joinpath(root, name)
+for _, name in ipairs({ ".venv", "venv", "env", ".env", ".virtualenv" }) do
+  local python = venv_python(vim.fs.joinpath(root, name))
+  if python then
+    return python
+  end
 end
 ```
+
+### 修改 LSP / 格式化 / 测试的自动选择
+
+所有规则集中在 `lua/crow/lang/python.lua`：
+
+- `M.detect()`：一次性探测项目；
+- `M.formatters(tools)`：conform 的格式化器链；
+- `M.lsp_config(tools)`：生成 pyright / basedpyright 配置；
+- `M.describe()`：`:CrowPython` 的输出。
+
+例如强制使用 basedpyright，只需要让它优先于 pyright：
+
+```lua
+-- 在 M.detect 里调整
+local lsp = executable("basedpyright-langserver") and "basedpyright" or "pyright"
+```
+
+改完用 `:CrowPython` 确认结果。插件接线在 `lua/plugins/python.lua`。
 
 ### 修改 venv-selector 搜索范围
 

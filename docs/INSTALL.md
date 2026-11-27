@@ -133,14 +133,17 @@ brew install git ripgrep fd unzip curl wget lazygit
 
 ```bash
 # 推荐用 pipx 隔离安装
-pipx install pyright
-pipx install ruff
+pipx install pyright        # 或 pipx install basedpyright（优先）
+pipx install ruff           # 缺失时自动回退 black + isort
 
 # 或者在项目虚拟环境里
 pip install pyright ruff
+pip install pytest debugpy  # 测试 / 调试（可选）
 ```
 
 `pyright` 需要 Node.js（`pipx` 版本会自带依赖，npm 版本需要 `nodejs`）。
+`basedpyright`、`black`、`isort`、`pytest`、`debugpy` 都是可选的：
+`lua/crow/lang/python.lua` 会按实际安装情况自动选择，用 `:CrowPython` 查看结果。
 
 ### Go
 
