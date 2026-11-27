@@ -1,6 +1,6 @@
 # CrowNvim
 
-> **版本：v1.0.1**
+> **版本：v1.1.0**
 > 基于 [LazyVim](https://github.com/LazyVim/LazyVim) 的个人 Neovim 配置。
 > 目标：把 Vim 时代顺手的工作流完整搬到 Neovim，同时保持启动快、行为可预测、出问题能自己查。
 
@@ -45,7 +45,7 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 - 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以自动翻译成中文；
 - 所有「为什么这么配」都写在对应 Lua 文件的头部注释里，方便日后自己改。
 
-当前版本为 **v1.0.1**。从 v1.0.0 起遵循语义化版本：
+当前版本为 **v1.1.0**。从 v1.0.0 起遵循语义化版本：
 
 - **v1.x 内保证向后兼容** —— 已发布的命令（`:CrowExplain` / `:CrowReview` / `:CrowAsk` 等）、`<leader>` 键位映射、
   `scripts/features.sh` 的子命令与开关名、`scripts/features_user.lua` 的格式，都不会在不作说明的情况下删除或改名；
@@ -318,7 +318,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 ```text
 ~/.config/nvim
 ├── init.lua                 # 入口：按顺序加载 options / neovide / crow / keymaps / autocmds / lazy
-├── VERSION                  # 当前版本（v1.0.1）
+├── VERSION                  # 当前版本（v1.1.0）
 ├── KEYMAPS.md               # 完整快捷键说明
 ├── lazy-lock.json           # 插件版本锁（提交到仓库，保证可复现）
 ├── lazyvim.json             # LazyVim extras 记录
@@ -558,6 +558,18 @@ Neovide 额外支持：
 ---
 
 ## 更新与回退
+
+### 变更记录
+
+**v1.1.0**
+
+- 新增多供应商 AI 与配置向导：`:CrowSetup` / `<leader>oK` 选供应商 → 输入 Key → 选模型；支持 OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动、Agnes AI（国内站）、本机 Ollama。
+- 新增供应商：NVIDIA NIM、AMD Radeon Cloud。
+- 补全模型统一由 `crow.models` 的 `complete` 角色管理，默认固定本机 Ollama `qwen2.5-coder:1.5b`（FIM，低延迟）。
+- 实用插件：`grug-far`（`<leader>sR` / `<leader>sW` 项目级搜索替换）、`refactoring.nvim`（`<leader>cx` 结构化重构）、`render-markdown.nvim`（buffer 内渲染 Markdown）。
+- Python 语言专用优化：新增 `lua/crow/lang/python.lua` 自动选择 LSP（`basedpyright` > `pyright`）、格式化（`ruff` > `black` + `isort`）、测试（`pytest` > `unittest`）、包管理器、解释器；`:CrowPython` 查看当前项目选择。
+- Python 测试与调试：`neotest`（`<leader>cT[r|f|s|o|d]`）、`nvim-dap-python`。
+- 修复：refactoring 在 Neovim 0.12 下补装 `async.nvim`；ruff 0.17 下 `ruff_format` 的 `--line-length` 位置导致保存格式化失败。
 
 ### 更新插件
 
