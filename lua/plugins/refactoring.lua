@@ -32,6 +32,7 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
+    "lewis6991/async.nvim", -- 0.12 下 refactoring 需要 async 模块
   },
   keys = {
     {
