@@ -1,6 +1,6 @@
 # 定制指南
 
-> 适用版本：**CrowNvim v1.1.0**
+> 适用版本：**CrowNvim v1.1.1**
 > 本文只讲「怎么改」，不重复讲每个插件怎么用。改完建议执行 `:Doctor` 和 `:checkhealth`。
 
 ---
@@ -314,6 +314,15 @@ my_server = {
 :checkhealth lspconfig
 :Doctor
 ```
+
+### Mason 自动安装
+
+`lua/plugins/mason.lua` 会在启动时自动安装**本机缺失**的 LSP 服务器与命令行工具，系统已有则跳过（尊重系统优先）。
+
+- **默认开启**；启动前设 `vim.g.crow_mason_auto = false` 完全禁用。
+- **手动补齐**：`:CrowMasonInstall`。
+- **调整清单**：改 `lua/plugins/mason.lua` 顶部的 `lsp_servers`（lspconfig 服务器名）与 `mason_tools`（命令行工具名）。缺失项会自动过滤，不会重复安装已存在的工具。
+- 自动安装是后台异步的，装完会触发 FileType 事件让对应 LSP 立即生效。
 
 ---
 

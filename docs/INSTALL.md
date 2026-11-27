@@ -1,6 +1,6 @@
 # 安装与依赖
 
-> 适用版本：**CrowNvim v1.1.0**
+> 适用版本：**CrowNvim v1.1.1**
 > 本文假设你把配置放在 `~/.config/nvim`。路径不同时请自行替换。
 
 ---
@@ -127,7 +127,9 @@ brew install git ripgrep fd unzip curl wget lazygit
 
 ## 4. 语言工具链
 
-> 本配置中的 LSP 大多显式设置了 `mason = false`，因此**优先使用系统里已安装的可执行文件**。`:Mason` 仍然可用，但不要假设所有服务器都会被自动装上。
+> 本配置中的 LSP 大多显式设置了 `mason = false`，因此**优先使用系统里已安装的可执行文件**。
+> 若系统缺失，`lua/plugins/mason.lua` 会按清单自动安装缺失的 LSP 服务器与格式化工具（默认开启）；
+> 手动补齐用 `:CrowMasonInstall`，禁用设 `vim.g.crow_mason_auto = false`。
 
 ### Python
 

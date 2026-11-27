@@ -1,6 +1,6 @@
 # CrowNvim
 
-> **版本：v1.1.0**
+> **版本：v1.1.1**
 > 基于 [LazyVim](https://github.com/LazyVim/LazyVim) 的个人 Neovim 配置。
 > 目标：把 Vim 时代顺手的工作流完整搬到 Neovim，同时保持启动快、行为可预测、出问题能自己查。
 
@@ -45,7 +45,7 @@ CrowNvim 是一套以 **LazyVim 为底座**、但大量重写了默认行为的 
 - 中文界面与中文文档优先，LSP 悬浮文档和补全文档可以自动翻译成中文；
 - 所有「为什么这么配」都写在对应 Lua 文件的头部注释里，方便日后自己改。
 
-当前版本为 **v1.1.0**。从 v1.0.0 起遵循语义化版本：
+当前版本为 **v1.1.1**。从 v1.0.0 起遵循语义化版本：
 
 - **v1.x 内保证向后兼容** —— 已发布的命令（`:CrowExplain` / `:CrowReview` / `:CrowAsk` 等）、`<leader>` 键位映射、
   `scripts/features.sh` 的子命令与开关名、`scripts/features_user.lua` 的格式，都不会在不作说明的情况下删除或改名；
@@ -280,7 +280,9 @@ nvim +checkhealth
 | Vimscript | `vim-language-server` |
 | C# | `OmniSharp` / `dotnet` |
 
-> LSP 配置里大多数服务器显式设置了 `mason = false`，因此**优先使用系统里已安装的可执行文件**。`:Mason` 仍可用于安装部分工具，但不要假设所有服务器都会由 Mason 自动装上。
+> LSP 配置里大多数服务器显式设置了 `mason = false`，因此**优先使用系统里已安装的可执行文件**（避免重复安装、省磁盘）。
+> 若系统缺失，`mason.nvim` 会按 `lua/plugins/mason.lua` 里的清单**自动安装**缺失的 LSP 服务器与格式化工具（默认开启，启动时后台异步安装）。
+> 手动补齐用 `:CrowMasonInstall`；完全禁用可在启动前设 `vim.g.crow_mason_auto = false`。
 
 ### AI（可选）
 
@@ -318,7 +320,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 ```text
 ~/.config/nvim
 ├── init.lua                 # 入口：按顺序加载 options / neovide / crow / keymaps / autocmds / lazy
-├── VERSION                  # 当前版本（v1.1.0）
+├── VERSION                  # 当前版本（v1.1.1）
 ├── KEYMAPS.md               # 完整快捷键说明
 ├── lazy-lock.json           # 插件版本锁（提交到仓库，保证可复现）
 ├── lazyvim.json             # LazyVim extras 记录
@@ -359,6 +361,7 @@ export OPENROUTER_API_KEY="sk-or-..."
         ├── grug-far.lua     # 项目级搜索替换
         ├── refactoring.lua  # 结构化重构
         ├── render-markdown.lua # Markdown 内联渲染
+        ├── mason.lua        # Mason 自动安装缺失工具 / LSP 服务器
         ├── go.lua
         ├── typescript-tools.lua
         └── …
@@ -409,6 +412,7 @@ require("config.lazy")      -- 8. 最后启动 lazy.nvim
 | `:checkhealth` | Neovim / 插件健康检查 |
 | `:Doctor` | 本配置的环境体检 |
 | `:Mason` | LSP / 工具安装面板 |
+| `:CrowMasonInstall` | 安装缺失的 Mason 工具 / LSP 服务器 |
 | `:Trouble` | 诊断 / 符号 / quickfix 面板 |
 | `:Neogit` | Git 状态面板 |
 | `:DiffviewOpen` | Diff 视图 |
@@ -561,6 +565,10 @@ Neovide 额外支持：
 
 ### 变更记录
 
+**v1.1.1**
+
+- **Mason 自动安装**：新增 `lua/plugins/mason.lua`，启动时自动安装本机缺失的 LSP 服务器与命令行工具（系统已有则跳过，尊重系统优先）；手动补齐用 `:CrowMasonInstall`，完全禁用设 `vim.g.crow_mason_auto = false`。
+
 **v1.1.0**
 
 - 新增多供应商 AI 与配置向导：`:CrowSetup` / `<leader>oK` 选供应商 → 输入 Key → 选模型；支持 OpenRouter、阿里云百炼、DeepSeek、Kimi、智谱、硅基流动、Agnes AI（国内站）、本机 Ollama。
@@ -620,7 +628,7 @@ git -C ~/.config/nvim checkout <commit> -- .
 ## 已知限制
 
 - **GitHub 直连不稳定**时，需要自行配置 Git 代理或镜像。代理属于机器级设置，不写进仓库。
-- **LSP 服务器不走 Mason 自动安装**（多数 `mason = false`），需要系统里已有可执行文件。
+- **LSP 服务器 / 工具走 Mason 自动安装**（默认开启）：`lua/plugins/mason.lua` 会在启动时自动安装本机缺失的 LSP 服务器与格式化工具；系统里已有的会跳过（系统优先）。禁用：`vim.g.crow_mason_auto = false`。
 - **Copilot 行内补全默认关闭**，因为 minuet 已经占用幽灵文本；需要云端补全时改 `lua/plugins/copilot.lua` 的 `suggestion.enabled = true`。
 - **AI 默认需要云端 Key**（OpenCode 等）；没有 Key 时会自动回退本机 Ollama，因此本机服务或模型缺失时，翻译/解释会明确报错，不会静默失败。
 - **配置仍在持续演进**，键位和插件选择可能变化。

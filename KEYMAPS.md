@@ -1,6 +1,6 @@
 # Neovim 快捷键说明
 
-> 适用版本：**CrowNvim v1.1.0**
+> 适用版本：**CrowNvim v1.1.1**
 > 适用配置：`~/.config/nvim`
 > `leader` = **空格**，`localleader` = `\`
 > 不确定按键时按 `<leader>` 等 1 秒，或按 `<leader>?` 查看当前 buffer 的键位。
@@ -487,6 +487,7 @@ Python 模板只在 `.py` buffer 中生效。
 | `:checkhealth noice` | 检查通知系统 |
 | `:checkhealth venv-selector` | 检查 Python 环境选择器 |
 | `:Mason` | 管理 LSP / 格式化工具 |
+| `:CrowMasonInstall` | 安装缺失的 Mason 工具 / LSP 服务器 |
 | `:Trouble` | 诊断 / 符号 / quickfix 面板 |
 | `:Neogit` | Git 状态面板 |
 | `:DiffviewOpen` | 打开 diff 视图 |

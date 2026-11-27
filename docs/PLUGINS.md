@@ -1,6 +1,6 @@
 # 插件清单
 
-> 适用版本：**CrowNvim v1.1.0**
+> 适用版本：**CrowNvim v1.1.1**
 > 插件版本以根目录 `lazy-lock.json` 为准。本文说明「装了什么、为什么装、配置在哪」。
 
 ---
@@ -105,8 +105,8 @@ LazyVim extras：
 | `neovim/nvim-lspconfig` | LSP 客户端配置、诊断样式、服务器参数 | `lua/plugins/lsp.lua` |
 | `saghen/blink.cmp` | 补全引擎；菜单汉化、霓虹样式、文档翻译 | `lua/plugins/blink.lua` |
 | `stevearc/conform.nvim` | 保存时格式化 | `lua/plugins/lsp.lua` |
-| `williamboman/mason.nvim` | 工具安装面板 | LazyVim 默认 |
-| `mason-lspconfig.nvim` | Mason 与 lspconfig 桥接 | LazyVim 默认 |
+| `williamboman/mason.nvim` | 工具安装面板 + 自动安装缺失工具 | LazyVim 默认 + `lua/plugins/mason.lua` |
+| `mason-lspconfig.nvim` | Mason 与 lspconfig 桥接，自动安装缺失 LSP 服务器 | LazyVim 默认 + `lua/plugins/mason.lua` |
 | `nvim-lint` | 异步 linter（ESLint 等） | LazyVim extras |
 | `pmizio/typescript-tools.nvim` | TypeScript LSP 增强 | `lua/plugins/typescript-tools.lua` |
 | `folke/lazydev.nvim` | Lua LSP 识别 Neovim API | LazyVim 默认 |
@@ -127,6 +127,8 @@ LazyVim extras：
 | C# | `OmniSharp` | 系统 / Mason |
 
 > 多数服务器在 `lsp.lua` 里设置了 `mason = false`，优先使用系统可执行文件。
+> `lua/plugins/mason.lua` 会在启动时自动安装**本机缺失**的 LSP 服务器与命令行工具（系统已有则跳过）；
+> 手动补齐用 `:CrowMasonInstall`，禁用设 `vim.g.crow_mason_auto = false`。
 
 ---
 
