@@ -99,7 +99,7 @@ return {
   -- ─── mason-lspconfig：自动装缺失的 LSP 服务器 ──────────
   -- LazyVim 不给它配 config，所以这里注册 config 是安全的（不覆盖上游）。
   {
-    "williamboman/mason-lspconfig.nvim",
+    "mason-org/mason-lspconfig.nvim",
     opts = function(_, opts)
       if auto_enabled then
         local miss = compute_missing()
